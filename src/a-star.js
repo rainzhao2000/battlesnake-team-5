@@ -10,8 +10,14 @@ class Problem {
   getActions(state) {
     return getSafeMoves(state);
   }
-  getResult(state, action) {}
-  getActionCost(state, action, new_state) {}
+  // simulate next turn with same food positions
+  getResult(state, action) {
+    const boardNew = structuredClone(state.board);
+    const youNew = structuredClone(state.you);
+    // update your head pos
+    const stateNew = { boardNew, youNew };
+  }
+  getActionCost(state, action, stateNew) {}
   isGoal(state) {}
 }
 
@@ -125,9 +131,9 @@ class MinHeap {
 function expand(problem, node) {
   const s = node.state;
   return problem.getActions(s).map((action) => {
-    const s_new = problem.getResult(s, action);
-    const cost = node.pathCost + problem.getActionCost(s, action, s_new);
-    return new Node(s_new, node, action, cost);
+    const sNew = problem.getResult(s, action);
+    const cost = node.pathCost + problem.getActionCost(s, action, sNew);
+    return new Node(sNew, node, action, cost);
   });
 }
 
