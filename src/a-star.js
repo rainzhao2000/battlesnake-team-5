@@ -1,5 +1,20 @@
 // reference: Chapter 3 of Russell, S. J., Norvig, P., & Chang, M.-W. (2021). Artificial Intelligence: A modern approach. Pearson.
 
+const { getSafeMoves } = require('./safe-moves');
+
+class Problem {
+  initial;
+  constructor(state) {
+    this.initial = state;
+  }
+  getActions(state) {
+    return getSafeMoves(state);
+  }
+  getResult(state, action) {}
+  getActionCost(state, action, new_state) {}
+  isGoal(state) {}
+}
+
 class Node {
   state;
   parent;
@@ -38,6 +53,7 @@ class MinHeap {
     this.#arr.push(node);
     this.fixUp(this.lastIndex());
   }
+  // helper methods below this point
   printHeap() {
     process.stdout.write('Heap:\n');
     let level = 0;
@@ -52,7 +68,6 @@ class MinHeap {
     }
     process.stdout.write('\n');
   }
-  // helper methods below this point
   // swap nodes indexed i and j
   swap(i, j) {
     const temp = this.#arr[i];
@@ -135,8 +150,26 @@ function bestFirstSearch(problem, evalFn) {
   throw 'failure';
 }
 
+function aStarSearch(gameState) {
+  const problem = new Problem(gameState);
+  try {
+    const goal = bestFirstSearch(problem, (node) => {
+      return node.pathCost// + heuristic(node);
+    });
+    return goal;
+  } catch (err) {
+    console.error(err);
+    const actions = problem.getActions(problem.initial);
+    return {
+        move: actions[Math.floor(Math.random() * actions.length)]
+    };
+  }
+}
+
 module.exports = {
+  Problem: Problem,
   Node: Node,
   MinHeap: MinHeap,
-  search: bestFirstSearch
+  bestFirstSearch: bestFirstSearch,
+  aStarSearch: aStarSearch
 }
