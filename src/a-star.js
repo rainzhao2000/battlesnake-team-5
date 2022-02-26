@@ -18,9 +18,9 @@ class Frontier {
   evalFn;
   #arr;
   #rootIndex = 0;
-  constructor(evalFn, initialNode) {
+  constructor(evalFn, initialNode = undefined) {
     this.evalFn = evalFn;
-    this.#arr = [initialNode];
+    this.#arr = initialNode ? [initialNode] : [];
   }
   // interface methods
   isEmpty() {
@@ -39,6 +39,20 @@ class Frontier {
     this.#arr.push(node);
     this.fixUp(this.lastIndex());
   }
+  printHeap() {
+    process.stdout.write('Heap:\n');
+    let level = 0;
+    let sum = 0;
+    for (const i in this.#arr) {
+      process.stdout.write(`${this.evalFn(this.#arr[i])}\t`);
+      if (i == sum) {
+        process.stdout.write('\n');
+        level++;
+        sum += Math.pow(2, level);
+      }
+    }
+    process.stdout.write('\n');
+  }
   // helper methods below this point
   // swap nodes indexed i and j
   swap(i, j) {
@@ -51,41 +65,43 @@ class Frontier {
   }
   // left child of node i
   leftIndex(i) {
-    if (!isValidIndex(i)) return null;
-    return 2*i+1;
+    const idx = 2 * i + 1;
+    if (!this.isValidIndex(idx)) return null;
+    return idx;
   }
   // right child of node i
   rightIndex(i) {
-    if (!isValidIndex(i)) return null;
-    return 2*i+2;
+    const idx = 2 * i + 2
+    if (!this.isValidIndex(idx)) return null;
+    return idx;
   }
   // parent of node i
   parentIndex(i) {
-    if (!isValidIndex(i)) return null;
-    return (i-1)/2;
+    const idx = Math.floor((i - 1) / 2);
+    if (!this.isValidIndex(idx)) return null;
+    return idx;
   }
   lastIndex() {
-    return this.#arr.length-1;
+    return this.#arr.length - 1;
   }
   isLeaf(i) {
-    return this.leftIndex(i) === null && this.rightIndex(i) === null;
+    return this.leftIndex(i) == null && this.rightIndex(i) == null;
   }
   fixUp(k) {
-    let parentIdx = this.parentIndex(k);
-    while (parentIdx !== null && this.#arr[parentIdx].pathCost > this.#arr[k].pathCost) {
-      this.swap(k, parentIdx);
-      k = parentIdx;
+    while (this.parentIndex(k) != null && this.evalFn(this.#arr[this.parentIndex(k)]) > this.evalFn(this.#arr[k])) {
+      this.swap(k, this.parentIndex(k));
+      k = this.parentIndex(k);
     }
   }
   fixDown(k) {
     while (!this.isLeaf(k)) {
       // Find the child with the larger key
-      const leftIdx = this.leftIndex(k);
+      let leftIdx = this.leftIndex(k);
       const rightIdx = this.rightIndex(k);
-      if (leftIdx !== this.lastIndex() && this.#arr[rightIdx].pathCost < this.#arr[leftIdx].pathCost) {
+      if (leftIdx != this.lastIndex() && this.evalFn(this.#arr[rightIdx]) < this.evalFn(this.#arr[leftIdx])) {
         leftIdx = rightIdx;
       }
-      if (this.#arr[k].pathCost <= this.#arr[leftIdx].pathCost) break;
+      if (this.evalFn(this.#arr[k]) <= this.evalFn(this.#arr[leftIdx])) break;
       this.swap(leftIdx, k);
       k = leftIdx;
     }
@@ -121,5 +137,7 @@ function bestFirstSearch(problem, evalFn) {
 }
 
 module.exports = {
+  Node: Node,
+  Frontier: Frontier,
   search: bestFirstSearch
 }
