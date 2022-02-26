@@ -1,3 +1,5 @@
+const { search } = require('./a-star')
+
 function info() {
     console.log("INFO")
     const response = {
