@@ -1,10 +1,10 @@
-const { Node, Frontier } = require('../src/a-star')
+const { Node, MinHeap } = require('../src/a-star')
 
 describe('Min Priority Queue', () => {
   test('should return min', () => {
     const unorderedSequence = [7, 4, 5, 9, 2, 10, 8, 1, 3, 6];
     const evalFn = (node) => node.pathCost;
-    const pq = new Frontier(evalFn);
+    const pq = new MinHeap(evalFn);
     for (const val of unorderedSequence) {
       pq.insert(new Node(null, null, null, val));
     }

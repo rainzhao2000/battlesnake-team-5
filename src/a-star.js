@@ -13,8 +13,7 @@ class Node {
   }
 }
 
-// priority queue implemented as min-heap
-class Frontier {
+class MinHeap {
   evalFn;
   #arr;
   #rootIndex = 0;
@@ -119,7 +118,7 @@ function expand(problem, node) {
 
 function bestFirstSearch(problem, evalFn) {
   let node = new Node(problem.initial);
-  const frontier = new Frontier(evalFn, node);
+  const frontier = new MinHeap(evalFn, node);
   const reached = new Map();
   reached.set(problem.initial, node);
   while (!frontier.isEmpty()) {
@@ -138,6 +137,6 @@ function bestFirstSearch(problem, evalFn) {
 
 module.exports = {
   Node: Node,
-  Frontier: Frontier,
+  MinHeap: MinHeap,
   search: bestFirstSearch
 }
