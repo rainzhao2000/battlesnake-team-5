@@ -1,5 +1,5 @@
-const { parentPort, workerData } = require('worker_threads');
-const { aStarSearch } = require('./a-star')
+const { isMainThread, parentPort, workerData } = require('worker_threads');
+const { aStarSearch } = require('./a-star');
 
 if (!isMainThread) {
   const gameState = workerData;

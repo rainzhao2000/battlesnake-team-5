@@ -22,7 +22,7 @@ function end(gameState) {
 
 function move(gameState) {
   return new Promise((resolve, reject) => {
-    const worker = new Worker('./worker-thread.js', {
+    const worker = new Worker('./src/worker-thread.js', {
       workerData: gameState
     });
     worker.on('message', resolve);
