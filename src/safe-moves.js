@@ -17,22 +17,40 @@ function getSafeMoves(gameState) {
   for (const snake of gameState.board.snakes) {
     // Don't hit any snake bodies
     for (const segment of snake.body) {
-      if (segment.y == myHead.y+1) possibleMoves.up = false;
-      if (segment.y == myHead.y-1) possibleMoves.down = false;
-      if (segment.x == myHead.x-1) possibleMoves.left = false;
-      if (segment.x == myHead.x+1) possibleMoves.right = false;
+      if (segment.x == myHead.x && segment.y == myHead.y+1) possibleMoves.up = false;
+      if (segment.x == myHead.x && segment.y == myHead.y-1) possibleMoves.down = false;
+      if (segment.x == myHead.x-1 && segment.y == myHead.y) possibleMoves.left = false;
+      if (segment.x == myHead.x+1 && segment.y == myHead.y) possibleMoves.right = false;
     }
     // Don't hit any snake's necks
-    if (snake.head.y == myHead.y+1) possibleMoves.up = false;
-    if (snake.head.y == myHead.y-1) possibleMoves.down = false;
-    if (snake.head.x == myHead.x-1) possibleMoves.left = false;
-    if (snake.head.x == myHead.x+1) possibleMoves.right = false;
+    if (snake.head.x == myHead.x && snake.head.y == myHead.y+1) possibleMoves.up = false;
+    if (snake.head.x == myHead.x && snake.head.y == myHead.y-1) possibleMoves.down = false;
+    if (snake.head.x == myHead.x-1 && snake.head.y == myHead.y) possibleMoves.left = false;
+    if (snake.head.x == myHead.x+1 && snake.head.y == myHead.y) possibleMoves.right = false;
     // Don't head on with longer snakes
     if (gameState.you.length <= snake.length) {
-      if (snake.head.y == myHead.y+2) possibleMoves.up = false;
-      if (snake.head.y == myHead.y-2) possibleMoves.down = false;
-      if (snake.head.x == myHead.x-2) possibleMoves.left = false;
-      if (snake.head.x == myHead.x+2) possibleMoves.right = false;
+      // head on cases
+      if (snake.head.x == myHead.x && snake.head.y == myHead.y+2) possibleMoves.up = false;
+      if (snake.head.x == myHead.x && snake.head.y == myHead.y-2) possibleMoves.down = false;
+      if (snake.head.x == myHead.x-2 && snake.head.y == myHead.y) possibleMoves.left = false;
+      if (snake.head.x == myHead.x+2 && snake.head.y == myHead.y) possibleMoves.right = false;
+      // perpendicular cases
+      if (snake.head.x == myHead.x-1 && snake.head.y == myHead.y+1) {
+        possibleMoves.up = false;
+        possibleMoves.left = false;
+      }
+      if (snake.head.x == myHead.x+1 && snake.head.y == myHead.y+1) {
+        possibleMoves.up = false;
+        possibleMoves.right = false;
+      }
+      if (snake.head.x == myHead.x+1 && snake.head.y == myHead.y-1) {
+        possibleMoves.down = false;
+        possibleMoves.right = false;
+      }
+      if (snake.head.x == myHead.x-1 && snake.head.y == myHead.y-1) {
+        possibleMoves.down = false;
+        possibleMoves.left = false;
+      }
     }
   }
 

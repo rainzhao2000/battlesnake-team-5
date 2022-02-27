@@ -224,7 +224,7 @@ function expand(problem, node) {
 }
 
 function bestFirstSearch(problem, evalFn) {
-  let node = new Node(problem.initial);
+  let node = new Node(problem.initial, null, null, 0);
   const frontier = new MinHeap(evalFn, node);
   const reached = new Map();
   reached.set(problem.initial, node);
@@ -248,10 +248,12 @@ function aStarSearch(gameState) {
     const goal = bestFirstSearch(problem, (node) => {
       return node.pathCost// + heuristicCost(node);
     });
+    // backtrack from goal to find the action taken
     let node = goal;
-    while (node.parent) {
+    while (node.parent && node.parent.parent) {
       node = node.parent;
     }
+    if (node == goal) throw 'already at goal';
     return { move: node.action };
   } catch (err) {
     console.error(err);
