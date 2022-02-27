@@ -302,22 +302,17 @@ function getTimeout() {
 }
 
 function aStarSearch(gameState) {
-  try {
-    const problem = new Problem(new State(gameState));
-    const goal = bestFirstSearch(problem, (node) => {
-      return node.pathCost// + heuristicCost(node);
-    }, getTimeout());
-    // backtrack from goal to find the action taken
-    let node = goal;
-    while (node.parent && node.parent.parent) {
-      node = node.parent;
-    }
-    if (node === goal) throw 'already at goal';
-    return { move: node.action };
-  } catch (err) {
-    console.error(err);
-    return randomMove(gameState);
+  const problem = new Problem(new State(gameState));
+  const goal = bestFirstSearch(problem, (node) => {
+    return node.pathCost// + heuristicCost(node);
+  }, getTimeout());
+  // backtrack from goal to find the action taken
+  let node = goal;
+  while (node.parent && node.parent.parent) {
+    node = node.parent;
   }
+  if (node === goal) throw 'already at goal';
+  return { move: node.action };
 }
 
 module.exports = {

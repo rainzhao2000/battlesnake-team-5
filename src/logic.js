@@ -1,4 +1,3 @@
-const { Worker } = require('worker_threads');
 const { randomMove } = require('./a-star');
 
 function info() {
@@ -23,19 +22,14 @@ function end(gameState) {
 
 function move(gameState) {
   return new Promise((resolve) => {
-    const worker = new Worker('./src/worker-thread.js', {
-      workerData: gameState
-    });
-    worker.on('message', resolve);
-    worker.on('error', (error) => {
-      console.error(error);
-      resolve(randomMove(gameState));
-    });
-    worker.on('exit', (code) => {
-      if (code !== 0) {
-        console.error(new Error(`Worker stopped with exit code ${code}`));
-        resolve(randomMove(gameState));
+    pool.runTask({ gameState }, (err, result) => {
+      let response = result;
+      if (err) {
+        console.error(err);
+        response = randomMove(gameState);
       }
+      console.log(`${gameState.game.id} MOVE ${gameState.turn}: ${response.move}`);
+      resolve(response);
     });
   });
 }
