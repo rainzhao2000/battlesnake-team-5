@@ -25,7 +25,6 @@ app.post("/move", (req, res) => {
         console.log(`${gameState.game.id} MOVE ${gameState.turn}: ${response.move}`);
         res.send(response);
       })
-      .catch(console.error);
 });
 
 app.post("/end", (req, res) => {

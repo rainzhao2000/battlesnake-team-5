@@ -261,12 +261,15 @@ function expand(problem, node) {
   });
 }
 
-function bestFirstSearch(problem, evalFn) {
+function bestFirstSearch(problem, evalFn, aboutToTimeout) {
   let node = new Node(problem.initial, null, null, 0);
   const frontier = new MinHeap(evalFn, node);
   const reached = new Map();
   reached.set(problem.initial, node);
   while (!frontier.isEmpty()) {
+    if (aboutToTimeout()) {
+      throw 'timeout';
+    }
     node = frontier.pop();
     if (problem.isGoal(node.state)) return node;
     for (const child of expand(problem, node)) {
@@ -280,12 +283,28 @@ function bestFirstSearch(problem, evalFn) {
   throw 'failure';
 }
 
-function aStarSearch(gameState) {
+function randomMove(gameState) {
   const problem = new Problem(new State(gameState));
+  const actions = problem.getActions(problem.initial);
+  return {
+      move: actions[Math.floor(Math.random() * actions.length)]
+  };
+}
+
+function getTimeout() {
+  const startTime = new Date();
+  return () => {
+    const currentTime = new Date();
+    return currentTime-startTime > 200;
+  }
+}
+
+function aStarSearch(gameState) {
   try {
+    const problem = new Problem(new State(gameState));
     const goal = bestFirstSearch(problem, (node) => {
       return node.pathCost// + heuristicCost(node);
-    });
+    }, getTimeout());
     // backtrack from goal to find the action taken
     let node = goal;
     while (node.parent && node.parent.parent) {
@@ -295,17 +314,16 @@ function aStarSearch(gameState) {
     return { move: node.action };
   } catch (err) {
     console.error(err);
-    const actions = problem.getActions(problem.initial);
-    return {
-        move: actions[Math.floor(Math.random() * actions.length)]
-    };
+    return randomMove(gameState);
   }
 }
 
 module.exports = {
+  State: State,
   Problem: Problem,
   Node: Node,
   MinHeap: MinHeap,
   bestFirstSearch: bestFirstSearch,
+  randomMove: randomMove,
   aStarSearch: aStarSearch
 }
