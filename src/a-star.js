@@ -280,7 +280,7 @@ function bestFirstSearch(problem, evalFn, aboutToTimeout) {
       }
     }
   }
-  throw 'failure';
+  throw 'no solution';
 }
 
 function randomMove(gameState) {
