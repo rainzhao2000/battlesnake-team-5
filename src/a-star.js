@@ -1,6 +1,11 @@
 // reference: Chapter 3 of Russell, S. J., Norvig, P., & Chang, M.-W. (2021). Artificial Intelligence: A modern approach. Pearson.
 
 const { getSafeMoves } = require('./safe-moves');
+const v8 = require('v8');
+
+const structuredClone = obj => {
+  return v8.deserialize(v8.serialize(obj));
+};
 
 function didEatFood(newHead, food) {
   for (const [i, foo] of food.entries()) {
@@ -22,8 +27,8 @@ class Problem {
   // simulate the next game state
   getResult(state, action) {
     // assume no new food
-    const newBoard = JSON.parse(JSON.stringify(state.board));
-    const me = JSON.parse(JSON.stringify(state.you));
+    const newBoard = structuredClone(state.board);
+    const me = structuredClone(state.you);
     // update your head pos
     switch (action) {
       case 'up': me.head.y += 1; break;
@@ -244,24 +249,24 @@ function bestFirstSearch(problem, evalFn) {
 
 function aStarSearch(gameState) {
   const problem = new Problem(gameState);
-  try {
-    const goal = bestFirstSearch(problem, (node) => {
-      return node.pathCost// + heuristicCost(node);
-    });
-    // backtrack from goal to find the action taken
-    let node = goal;
-    while (node.parent && node.parent.parent) {
-      node = node.parent;
-    }
-    if (node == goal) throw 'already at goal';
-    return { move: node.action };
-  } catch (err) {
-    console.error(err);
+  // try {
+  //   const goal = bestFirstSearch(problem, (node) => {
+  //     return node.pathCost// + heuristicCost(node);
+  //   });
+  //   // backtrack from goal to find the action taken
+  //   let node = goal;
+  //   while (node.parent && node.parent.parent) {
+  //     node = node.parent;
+  //   }
+  //   if (node == goal) throw 'already at goal';
+  //   return { move: node.action };
+  // } catch (err) {
+  //   console.error(err);
     const actions = problem.getActions(problem.initial);
     return {
         move: actions[Math.floor(Math.random() * actions.length)]
     };
-  }
+  // }
 }
 
 module.exports = {
