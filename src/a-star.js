@@ -268,7 +268,7 @@ function bestFirstSearch(problem, evalFn, aboutToTimeout) {
   reached.set(problem.initial, node);
   while (!frontier.isEmpty()) {
     if (aboutToTimeout()) {
-      throw 'timeout';
+      throw 'search timeout';
     }
     node = frontier.pop();
     if (problem.isGoal(node.state)) return node;
@@ -295,7 +295,7 @@ function getTimeout() {
   const startTime = new Date();
   return () => {
     const currentTime = new Date();
-    return currentTime-startTime > 200;
+    return currentTime-startTime > 4000;
   }
 }
 
@@ -310,7 +310,7 @@ function aStarSearch(gameState) {
     while (node.parent && node.parent.parent) {
       node = node.parent;
     }
-    if (node == goal) throw 'already at goal';
+    if (node === goal) throw 'already at goal';
     return { move: node.action };
   } catch (err) {
     console.error(err);
