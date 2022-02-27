@@ -266,11 +266,13 @@ function bestFirstSearch(problem, evalFn, aboutToTimeout) {
   const frontier = new MinHeap(evalFn, node);
   const reached = new Map();
   reached.set(problem.initial, node);
+  let numSearched = 0;
   while (!frontier.isEmpty()) {
     if (aboutToTimeout()) {
-      throw 'search timeout';
+      throw `search timeout | searched ${numSearched} states`;
     }
     node = frontier.pop();
+    numSearched += 1;
     if (problem.isGoal(node.state)) return node;
     for (const child of expand(problem, node)) {
       const s = child.state;
@@ -280,7 +282,7 @@ function bestFirstSearch(problem, evalFn, aboutToTimeout) {
       }
     }
   }
-  throw 'no solution';
+  throw `no solution | searched ${numSearched} states`;
 }
 
 function randomMove(gameState) {
@@ -295,7 +297,7 @@ function getTimeout() {
   const startTime = new Date();
   return () => {
     const currentTime = new Date();
-    return currentTime-startTime > 4000;
+    return currentTime-startTime > 300;
   }
 }
 
