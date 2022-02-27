@@ -2,6 +2,15 @@
 
 const { getSafeMoves } = require('./safe-moves');
 
+function didEatFood(newHead, food) {
+  for (const [i, foo] of food.entries()) {
+    if (newHead.x == foo.x && newHead.y == foo.y) {
+      return { foodIdx: i };
+    }
+  }
+  return false;
+}
+
 class Problem {
   initial;
   constructor(state) {
@@ -10,15 +19,92 @@ class Problem {
   getActions(state) {
     return getSafeMoves(state);
   }
-  // simulate next turn with same food positions
+  // simulate the next game state
   getResult(state, action) {
-    const boardNew = structuredClone(state.board);
-    const youNew = structuredClone(state.you);
+    // assume no new food
+    const newBoard = JSON.parse(JSON.stringify(state.board));
+    const me = JSON.parse(JSON.stringify(state.you));
     // update your head pos
-    const stateNew = { boardNew, youNew };
+    switch (action) {
+      case 'up': me.head.y += 1; break;
+      case 'down': me.head.y -= 1; break;
+      case 'left': me.head.x -= 1; break;
+      case 'right': me.head.x += 1; break;
+    }
+    // update all snakes before collision
+    for (const [i, snake] of state.board.snakes.entries()) {
+      const newSnake = newBoard.snakes[i];
+      // assume no intelligence i.e naively move other snake heads forward
+      if (snake.id !== me.id) {
+        if (snake.head.y == snake.body[0].y+1) { // moving up
+          newSnake.head.y += 1;
+        } else if (snake.head.y == snake.body[0].y-1) { // moving down
+          newSnake.head.y -= 1;
+        } else if (snake.head.x == snake.body[0].x-1) { // moving left
+          newSnake.head.x -= 1;
+        } else if (snake.head.x == snake.body[0].x+1) { // moving right
+          newSnake.head.x += 1;
+        }
+      }
+      // check if food was eaten
+      const ateFood = didEatFood(newSnake.head, state.board.food);
+      if (ateFood) {
+        // remove eaten food and increase length
+        newBoard.food.splice(ateFood.foodIdx, 1);
+        newSnake.length += 1;
+        newSnake.health = 100;
+      } else {
+        // remove last body segment
+        newSnake.body.pop();
+        newSnake.health -= 1;
+        if (newSnake.health == 0) {
+          // kill snake immediately
+          newBoard.snakes.splice(i, 1);
+          continue;
+        }
+      }
+      // add new body segment where head was
+      newSnake.body.unshift(snake.head);
+    }
+    // handle snake collisions
+    for (const snake of newBoard.snakes) {
+      for (const otherSnake of newBoard.snakes) {
+        if (snake.markedForDeath) break;
+        if (snake.head.x == otherSnake.head.x && snake.head.y == otherSnake.head.y) {
+          if (snake.length < otherSnake.length) {
+            snake.markedForDeath = true;
+          } else if (snake.length > otherSnake.length) {
+            otherSnake.markedForDeath = true;
+          } else {
+            snake.markedForDeath = true;
+            otherSnake.markedForDeath = true;
+          }
+          break;
+        }
+        for (const segment of otherSnake.body) {
+          if (snake.head.x == segment.x && snake.head.y == segment.y) {
+            snake.markedForDeath = true;
+            break;
+          }
+        }
+      }
+    }
+    // kill snakes marked for death
+    newBoard.snakes = newBoard.snakes.filter((snake) => !snake.markedForDeath);
+    return { board: newBoard, you: me };
   }
-  getActionCost(state, action, stateNew) {}
-  isGoal(state) {}
+  getActionCost(state, action, newState) {
+    // temporary naive assumption
+    return 1;
+  }
+  isGoal(state) {
+    // temporary naive goal
+    return state.board.food.some((foo) => {
+      const dx = Math.abs(foo.x - state.you.head.x);
+      const dy = Math.abs(foo.y - state.you.head.y);
+      return dx <= 1 && dy == 0 || dx == 0 && dy <= 1;
+    });
+  }
 }
 
 class Node {
@@ -131,9 +217,9 @@ class MinHeap {
 function expand(problem, node) {
   const s = node.state;
   return problem.getActions(s).map((action) => {
-    const sNew = problem.getResult(s, action);
-    const cost = node.pathCost + problem.getActionCost(s, action, sNew);
-    return new Node(sNew, node, action, cost);
+    const newS = problem.getResult(s, action);
+    const cost = node.pathCost + problem.getActionCost(s, action, newS);
+    return new Node(newS, node, action, cost);
   });
 }
 
@@ -160,9 +246,13 @@ function aStarSearch(gameState) {
   const problem = new Problem(gameState);
   try {
     const goal = bestFirstSearch(problem, (node) => {
-      return node.pathCost// + heuristic(node);
+      return node.pathCost// + heuristicCost(node);
     });
-    return goal;
+    let node = goal;
+    while (node.parent) {
+      node = node.parent;
+    }
+    return { move: node.action };
   } catch (err) {
     console.error(err);
     const actions = problem.getActions(problem.initial);
