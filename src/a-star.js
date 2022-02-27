@@ -20,6 +20,9 @@ class Board {
     this.food = gameBoard.food;
     // this.hazards = gameBoard.hazards;
     this.snakes = gameBoard.snakes;
+    if (gameBoard.eatenFood != undefined) {
+      this.eatenFood = gameBoard.eatenFood;
+    }
   }
 }
 
