@@ -20,7 +20,7 @@ function end(gameState) {
   console.log(`${gameState.game.id} END\n`)
 }
 
-function move(gameState) {
+function move(pool, gameState) {
   return new Promise((resolve) => {
     pool.runTask({ gameState }, (err, result) => {
       let response = result;

@@ -23,7 +23,7 @@ app.post("/start", (req, res) => {
 });
 
 app.post("/move", (req, res) => {
-  move(req.body).then((response) => res.send(response));
+  move(pool, req.body).then((response) => res.send(response));
 });
 
 app.post("/end", (req, res) => {
