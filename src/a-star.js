@@ -35,6 +35,19 @@ class State {
   }
 }
 
+class Node {
+  state;
+  parent;
+  action;
+  pathCost;
+  constructor(state, parent, action, pathCost) {
+    this.state = state;
+    this.parent = parent;
+    this.action = action;
+    this.pathCost = pathCost;
+  }
+}
+
 const COLORS = {
   Reset: "\x1b[0m",
   Bright: "\x1b[1m",
@@ -60,9 +73,11 @@ const COLORS = {
   BgCyan: "\x1b[46m",
   BgWhite: "\x1b[47m"
 };
+
 function boxChar(color) {
   return `${color}${String.fromCharCode(9632)}${COLORS.Reset}`;
 }
+
 function printState({ board, you }) {
   const output = [];
   // print grid
@@ -98,7 +113,6 @@ function printState({ board, you }) {
   try {
     output[board.height-1-you.head.y][you.head.x] = boxChar(COLORS.FgWhite);
   } catch (err) {}
-
   console.error('-----------------------');
   for (const row of output) {
     for (const text of row) {
@@ -118,8 +132,8 @@ function didEatFood(newHead, food) {
   return false;
 }
 
-function hasEscape(problem, node, numEvals = 1) {
-  const children = expand(problem, node);
+function hasEscape(node, numEvals = 1) {
+  const children = expand(node);
   if (children.length > 1) {
     console.error(`+ ${numEvals} searches for escape`);
     return true;
@@ -128,124 +142,108 @@ function hasEscape(problem, node, numEvals = 1) {
     console.error(`+ ${numEvals} searches for escape`);
     return false;
   }
-  return children.some((child) => hasEscape(problem, child, numEvals+1));
+  return children.some((child) => hasEscape(child, numEvals+1));
 }
 
-class Problem {
-  initial;
-  constructor(state) {
-    this.initial = state;
+function getActions(state) {
+  return getSafeMoves(state);
+}
+
+// simulate the next game state
+function getResult(state, action) {
+  const newBoard = structuredClone(state.board);
+  // assume no new food and remove eaten food
+  for (const foodIdx of newBoard.eatenFood) {
+    newBoard.food.splice(foodIdx, 1);
   }
-  getActions(state) {
-    return getSafeMoves(state);
+  // update your head pos
+  const myHead = structuredClone(state.you.head);
+  switch (action) {
+    case 'up': myHead.y += 1; break;
+    case 'down': myHead.y -= 1; break;
+    case 'left': myHead.x -= 1; break;
+    case 'right': myHead.x += 1; break;
   }
-  // simulate the next game state
-  getResult(state, action) {
-    const newBoard = structuredClone(state.board);
-    // assume no new food and remove eaten food
-    for (const foodIdx of newBoard.eatenFood) {
-      newBoard.food.splice(foodIdx, 1);
-    }
-    // update your head pos
-    const myHead = structuredClone(state.you.head);
-    switch (action) {
-      case 'up': myHead.y += 1; break;
-      case 'down': myHead.y -= 1; break;
-      case 'left': myHead.x -= 1; break;
-      case 'right': myHead.x += 1; break;
-    }
-    // update all snakes before collision
-    for (const [i, snake] of state.board.snakes.entries()) {
-      const newSnake = newBoard.snakes[i];
-      // assume no intelligence i.e naively move other snake heads forward
-      if (snake.id == state.you.id) {
-        newSnake.head = myHead;
+  // update all snakes before collision
+  for (const [i, snake] of state.board.snakes.entries()) {
+    const newSnake = newBoard.snakes[i];
+    // assume no intelligence i.e naively move other snake heads forward
+    if (snake.id == state.you.id) {
+      newSnake.head = myHead;
+    } else {
+      if (snake.head.x == snake.body[1].x && snake.head.y == snake.body[1].y+1) { // moving up
+        newSnake.head.y += 1;
+      } else if (snake.head.x == snake.body[1].x && snake.head.y == snake.body[1].y-1) { // moving down
+        newSnake.head.y -= 1;
+      } else if (snake.head.x == snake.body[1].x-1 && snake.head.y == snake.body[1].y) { // moving left
+        newSnake.head.x -= 1;
+      } else if (snake.head.x == snake.body[1].x+1 && snake.head.y == snake.body[1].y) { // moving right
+        newSnake.head.x += 1;
       } else {
-        if (snake.head.x == snake.body[1].x && snake.head.y == snake.body[1].y+1) { // moving up
-          newSnake.head.y += 1;
-        } else if (snake.head.x == snake.body[1].x && snake.head.y == snake.body[1].y-1) { // moving down
-          newSnake.head.y -= 1;
-        } else if (snake.head.x == snake.body[1].x-1 && snake.head.y == snake.body[1].y) { // moving left
-          newSnake.head.x -= 1;
-        } else if (snake.head.x == snake.body[1].x+1 && snake.head.y == snake.body[1].y) { // moving right
-          newSnake.head.x += 1;
+        throw ['fuc> ', snake.head, snake.body];
+      }
+    }
+    // check if food was eaten
+    const ateFood = didEatFood(newSnake.head, state.board.food);
+    if (ateFood) {
+      // mark eaten food for deletion next tick and increase length
+      newBoard.eatenFood.push(ateFood.foodIdx);
+      newSnake.length += 1;
+      newSnake.health = 100;
+    } else {
+      // remove last body segment
+      newSnake.body.pop();
+      newSnake.health -= 1;
+      if (newSnake.health == 0) {
+        // kill snake immediately
+        newSnake.markedForDeath;
+        continue;
+      }
+    }
+    // add new body segment where head is
+    newSnake.body.unshift(structuredClone(newSnake.head));
+  }
+  // handle snake collisions
+  for (const otherSnake of newBoard.snakes) {
+    for (const snake of newBoard.snakes) {
+      if (snake.markedForDeath) break;
+      // head on head collision
+      if (snake.id != otherSnake.id && snake.head.x == otherSnake.head.x && snake.head.y == otherSnake.head.y) {
+        if (snake.length < otherSnake.length) {
+          snake.markedForDeath = true;
+        } else if (snake.length > otherSnake.length) {
+          otherSnake.markedForDeath = true;
         } else {
-          throw ['fuc> ', snake.head, snake.body];
+          snake.markedForDeath = true;
+          otherSnake.markedForDeath = true;
         }
+        break;
       }
-      // check if food was eaten
-      const ateFood = didEatFood(newSnake.head, state.board.food);
-      if (ateFood) {
-        // mark eaten food for deletion next tick and increase length
-        newBoard.eatenFood.push(ateFood.foodIdx);
-        newSnake.length += 1;
-        newSnake.health = 100;
-      } else {
-        // remove last body segment
-        newSnake.body.pop();
-        newSnake.health -= 1;
-        if (newSnake.health == 0) {
-          // kill snake immediately
-          newSnake.markedForDeath;
-          continue;
-        }
-      }
-      // add new body segment where head is
-      newSnake.body.unshift(structuredClone(newSnake.head));
-    }
-    // handle snake collisions
-    for (const otherSnake of newBoard.snakes) {
-      for (const snake of newBoard.snakes) {
-        if (snake.markedForDeath) break;
-        // head on head collision
-        if (snake.id != otherSnake.id && snake.head.x == otherSnake.head.x && snake.head.y == otherSnake.head.y) {
-          if (snake.length < otherSnake.length) {
-            snake.markedForDeath = true;
-          } else if (snake.length > otherSnake.length) {
-            otherSnake.markedForDeath = true;
-          } else {
-            snake.markedForDeath = true;
-            otherSnake.markedForDeath = true;
-          }
+      // head on body collision
+      for (let j = 1; j < otherSnake.body; ++j) {
+        if (snake.head.x == otherSnake.body[j].x && snake.head.y == otherSnake.body[j].y) {
+          snake.markedForDeath = true;
           break;
         }
-        // head on body collision
-        for (let j = 1; j < otherSnake.body; ++j) {
-          if (snake.head.x == otherSnake.body[j].x && snake.head.y == otherSnake.body[j].y) {
-            snake.markedForDeath = true;
-            break;
-          }
-        }
       }
     }
-    const you = structuredClone(newBoard.snakes.find((snake) => snake.id == state.you.id));
-    // kill snakes marked for death
-    newBoard.snakes = newBoard.snakes.filter((snake) => !snake.markedForDeath);
-    return new State({ board: newBoard, you });
   }
-  getActionCost(state, action, newState) {
-    // temporary naive assumption
-    return 1;
-  }
-  isGoal(node) {
-    // food and escape goal
-    return node.state.board.food.some(
-      (foo) => foo.x == node.state.you.head.x && foo.y == node.state.you.head.y
-    ) && hasEscape(this, node);
-  }
+  const you = structuredClone(newBoard.snakes.find((snake) => snake.id == state.you.id));
+  // kill snakes marked for death
+  newBoard.snakes = newBoard.snakes.filter((snake) => !snake.markedForDeath);
+  return new State({ board: newBoard, you });
 }
 
-class Node {
-  state;
-  parent;
-  action;
-  pathCost;
-  constructor(state, parent, action, pathCost) {
-    this.state = state;
-    this.parent = parent;
-    this.action = action;
-    this.pathCost = pathCost;
-  }
+function getActionCost(state, action, newState) {
+  // temporary naive assumption
+  return 1;
+}
+
+function isGoal(node) {
+  // food and escape goal
+  return node.state.board.food.some(
+    (foo) => foo.x == node.state.you.head.x && foo.y == node.state.you.head.y
+  ) && hasEscape(node);
 }
 
 class MinHeap {
@@ -342,28 +340,28 @@ class MinHeap {
   }
 }
 
-function expand(problem, node) {
+function expand(node) {
   const s = node.state;
-  return problem.getActions(s).map((action) => {
-    const newS = problem.getResult(s, action);
-    const cost = node.pathCost + problem.getActionCost(s, action, newS);
+  return getActions(s).map((action) => {
+    const newS = getResult(s, action);
+    const cost = node.pathCost + getActionCost(s, action, newS);
     return new Node(newS, node, action, cost);
   });
 }
 
-function bestFirstSearch(problem, evalFn, aboutToTimeout) {
-  let node = new Node(problem.initial, null, null, 0);
+function bestFirstSearch(state, evalFn, aboutToTimeout) {
+  let node = new Node(state, null, null, 0);
   const frontier = new MinHeap(evalFn, node);
   const reached = new Map();
-  reached.set(problem.initial, node);
+  reached.set(state, node);
   let numSearched = 0;
   while (!frontier.isEmpty()) {
     if (aboutToTimeout()) throw `search timeout | searched ${numSearched} states`;
     node = frontier.pop();
     numSearched += 1;
-    const children = expand(problem, node);
+    const children = expand(node);
     if (children.length == 0) continue; // dead end
-    if (problem.isGoal(node)) return node;
+    if (isGoal(node)) return node;
     for (const child of children) {
       const s = child.state;
       if (!reached.has(s) || child.pathCost < reached.get(s).pathCost) {
@@ -376,8 +374,7 @@ function bestFirstSearch(problem, evalFn, aboutToTimeout) {
 }
 
 function randomMove(gameState) {
-  const problem = new Problem(new State(gameState));
-  const actions = problem.getActions(problem.initial);
+  const actions = getActions(new State(gameState));
   return {
       move: actions[Math.floor(Math.random() * actions.length)]
   };
@@ -412,8 +409,7 @@ function heuristicCost(node) {
 }
 
 function aStarSearch(gameState) {
-  const problem = new Problem(new State(gameState));
-  const goal = bestFirstSearch(problem, (node) => {
+  const goal = bestFirstSearch(new State(gameState), (node) => {
     return /*node.pathCost + */heuristicCost(node);
   }, getTimeout());
   // backtrack from goal to find the action taken
@@ -432,7 +428,6 @@ function aStarSearch(gameState) {
 
 module.exports = {
   State: State,
-  Problem: Problem,
   Node: Node,
   MinHeap: MinHeap,
   bestFirstSearch: bestFirstSearch,
