@@ -413,14 +413,14 @@ function aStarSearch(gameState) {
     return /*node.pathCost + */heuristicCost(node);
   }, getTimeout());
   // backtrack from goal to find the action taken
-  // let futureStates = [goal.state]; // for debugging
+  // let pathToGoal = [goal.state]; // for debugging
   let node = goal;
   while (node.parent && node.parent.parent) {
     node = node.parent;
-    // futureStates.push(node.state);
+    // pathToGoal.push(node.state);
   }
-  // while (futureStates.length) {
-  //   printState(futureStates.pop());
+  // while (pathToGoal.length) {
+  //   printState(pathToGoal.pop());
   // }
   if (node.action == null) throw 'already at goal';
   return { move: node.action };
