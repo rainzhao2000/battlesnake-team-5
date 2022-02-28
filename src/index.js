@@ -36,9 +36,9 @@ const server = app.listen(port, () => {
 })
 
 process.on('SIGTERM', () => {
-  debug('SIGTERM signal received: closing HTTP server')
+  console.log('SIGTERM signal received: closing HTTP server')
   server.close(() => {
-    debug('HTTP server closed')
+    console.log('HTTP server closed')
   })
   pool.close();
 })

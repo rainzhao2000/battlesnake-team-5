@@ -22,6 +22,10 @@ function end(gameState) {
 
 function move(pool, gameState) {
   return new Promise((resolve) => {
+    if (gameState.turn < 3) {
+      resolve(randomMove(gameState));
+      return;
+    }
     pool.runTask({ gameState }, (err, result) => {
       let response = result;
       if (err) {
