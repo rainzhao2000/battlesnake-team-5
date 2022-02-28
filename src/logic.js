@@ -7,7 +7,7 @@ function info() {
     author: "",
     color: "#6eab61",
     head: "evil",
-    tail: "bold"
+    tail: "bolt"
   }
   return response
 }
