@@ -118,6 +118,19 @@ function didEatFood(newHead, food) {
   return false;
 }
 
+function hasEscape(problem, node, numEvals = 1) {
+  const children = expand(problem, node);
+  if (children.length > 1) {
+    console.error(`+ ${numEvals} searches for escape`);
+    return true;
+  }
+  if (children.length < 1) {
+    console.error(`+ ${numEvals} searches for escape`);
+    return false;
+  }
+  return children.some((child) => hasEscape(problem, child, numEvals+1));
+}
+
 class Problem {
   initial;
   constructor(state) {
@@ -214,15 +227,11 @@ class Problem {
     // temporary naive assumption
     return 1;
   }
-  isGoal(state) {
-    // food goal
-    return state.board.food.some((foo) => foo.x == state.you.head.x && foo.y == state.you.head.y);
-    // hover around food goal
-    // return state.board.food.some((foo) => {
-    //   const dx = Math.abs(foo.x - state.you.head.x);
-    //   const dy = Math.abs(foo.y - state.you.head.y);
-    //   return dx <= 1 && dy == 0 || dx == 0 && dy <= 1;
-    // });
+  isGoal(node) {
+    // food and escape goal
+    return node.state.board.food.some(
+      (foo) => foo.x == node.state.you.head.x && foo.y == node.state.you.head.y
+    ) && hasEscape(this, node);
   }
 }
 
@@ -249,7 +258,7 @@ class MinHeap {
   }
   // interface methods
   isEmpty() {
-    return this.#arr.length === 0;
+    return this.#arr.length == 0;
   }
   pop() {
     this.swap(this.#rootIndex, this.lastIndex());
@@ -352,8 +361,10 @@ function bestFirstSearch(problem, evalFn, aboutToTimeout) {
     if (aboutToTimeout()) throw `search timeout | searched ${numSearched} states`;
     node = frontier.pop();
     numSearched += 1;
-    if (problem.isGoal(node.state)) return node;
-    for (const child of expand(problem, node)) {
+    const children = expand(problem, node);
+    if (children.length == 0) continue; // dead end
+    if (problem.isGoal(node)) return node;
+    for (const child of children) {
       const s = child.state;
       if (!reached.has(s) || child.pathCost < reached.get(s).pathCost) {
         reached.set(s, child);
@@ -376,7 +387,7 @@ function getTimeout() {
   const startTime = new Date();
   return () => {
     const currentTime = new Date();
-    return currentTime-startTime > 300;
+    return currentTime-startTime > 200;
   }
 }
 
