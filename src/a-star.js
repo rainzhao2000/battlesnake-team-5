@@ -374,6 +374,7 @@ function bestFirstSearch(state, evalFn, aboutToTimeout) {
 }
 
 function randomMove(gameState) {
+  console.error('moving randomly...');
   const actions = getActions(new State(gameState));
   return {
       move: actions[Math.floor(Math.random() * actions.length)]
