@@ -205,7 +205,7 @@ class Problem {
         }
       }
     }
-    const you = newBoard.snakes.find((snake) => snake.id == state.you.id);
+    const you = structuredClone(newBoard.snakes.find((snake) => snake.id == state.you.id));
     // kill snakes marked for death
     newBoard.snakes = newBoard.snakes.filter((snake) => !snake.markedForDeath);
     return new State({ board: newBoard, you });
@@ -376,7 +376,7 @@ function getTimeout() {
   const startTime = new Date();
   return () => {
     const currentTime = new Date();
-    return currentTime-startTime > 4000;
+    return currentTime-startTime > 300;
   }
 }
 
@@ -406,15 +406,15 @@ function aStarSearch(gameState) {
     return /*node.pathCost + */heuristicCost(node);
   }, getTimeout());
   // backtrack from goal to find the action taken
-  let futureStates = [goal.state]; // for debugging
+  // let futureStates = [goal.state]; // for debugging
   let node = goal;
   while (node.parent && node.parent.parent) {
     node = node.parent;
-    futureStates.push(node.state);
+    // futureStates.push(node.state);
   }
-  while (futureStates.length) {
-    printState(futureStates.pop());
-  }
+  // while (futureStates.length) {
+  //   printState(futureStates.pop());
+  // }
   if (node.action == null) throw 'already at goal';
   return { move: node.action };
 }
