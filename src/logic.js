@@ -6,8 +6,8 @@ function info() {
     apiversion: "1",
     author: "",
     color: "#6eab61",
-    head: "rbc-bowler",
-    tail: "rbc-necktie"
+    head: "evil",
+    tail: "bold"
   }
   return response
 }

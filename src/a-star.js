@@ -180,6 +180,8 @@ function getResult(state, action) {
       } else if (snake.head.x == snake.body[1].x+1 && snake.head.y == snake.body[1].y) { // moving right
         newSnake.head.x += 1;
       } else {
+        printState(state);
+        console.log('hi');
         throw ['fuc> ', snake.head, snake.body];
       }
     }
