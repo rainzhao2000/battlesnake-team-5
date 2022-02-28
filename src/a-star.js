@@ -297,21 +297,31 @@ function getTimeout() {
   const startTime = new Date();
   return () => {
     const currentTime = new Date();
-    return currentTime-startTime > 300;
+    return currentTime-startTime > 4000;
   }
+}
+
+function heuristicCost(node) {
+  // manhattan distance to nearest food
+  let minDistance = node.state.board.width + node.state.board.height;
+  for (const foo of node.state.board.food) {
+    const d = Math.abs(foo.x-node.state.you.head.x) + Math.abs(foo.y-node.state.you.head.y);
+    if (d < minDistance) minDistance = d;
+  }
+  return minDistance;
 }
 
 function aStarSearch(gameState) {
   const problem = new Problem(new State(gameState));
   const goal = bestFirstSearch(problem, (node) => {
-    return node.pathCost// + heuristicCost(node);
+    return /*node.pathCost + */heuristicCost(node);
   }, getTimeout());
   // backtrack from goal to find the action taken
   let node = goal;
   while (node.parent && node.parent.parent) {
     node = node.parent;
   }
-  if (node === goal) throw 'already at goal';
+  if (node.action == null) throw 'already at goal';
   return { move: node.action };
 }
 
