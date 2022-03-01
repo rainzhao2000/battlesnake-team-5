@@ -15,6 +15,7 @@ function isOtherHeadDownRight(otherHead, myHead) {
 }
 
 function getSafeMoves(gameState) {
+  if (!gameState.you) return [];
   let possibleMoves = {
     up: true,
     down: true,
