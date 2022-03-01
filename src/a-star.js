@@ -224,9 +224,10 @@ function getActionCost(state, action, newState) {
 }
 
 function isGoal(node) {
-  // food and escape goal
-  return node.state.board.food.some(
-    (foo) => foo.x == node.state.you.head.x && foo.y == node.state.you.head.y
+  const me = node.state.you;
+  // hungry and food and escape goal
+  return me && me.health < 50 && node.state.board.food.some(
+    (foo) => foo.x == me.head.x && foo.y == me.head.y
   ) && hasEscape(node);
 }
 
