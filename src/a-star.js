@@ -221,32 +221,32 @@ function getResult(state, action) {
 }
 
 function getActionCost(state, action, newState) {
-  const myHead = state.you.head;
+  const myHead = newState.you.head;
   const costIncrement = state.board.width * state.board.height;
   let cost = 1;
-  if (state.board.snakes.every(
-    (snake) => (state.you.length > snake.length) || (
+  if (newState.board.snakes.every(
+    (snake) => (newState.you.length > snake.length) || (
       !(snake.head.x == myHead.x && snake.head.y == myHead.y+2) &&
       !isOtherHeadUpLeft(snake.head, myHead) &&
       !isOtherHeadUpRight(snake.head, myHead)
     )
   )) cost += costIncrement;
-  if (state.board.snakes.every(
-    (snake) => (state.you.length > snake.length) || (
+  if (newState.board.snakes.every(
+    (snake) => (newState.you.length > snake.length) || (
       !(snake.head.x == myHead.x && snake.head.y == myHead.y-2) &&
       !isOtherHeadDownLeft(snake.head, myHead) &&
       !isOtherHeadDownRight(snake.head, myHead)
     )
   )) cost += costIncrement;
-  if (state.board.snakes.every(
-    (snake) => (state.you.length > snake.length) || (
+  if (newState.board.snakes.every(
+    (snake) => (newState.you.length > snake.length) || (
       !(snake.head.x == myHead.x-2 && snake.head.y == myHead.y) &&
       !isOtherHeadUpLeft(snake.head, myHead) &&
       !isOtherHeadDownLeft(snake.head, myHead)
     )
   )) cost += costIncrement;
-  if (state.board.snakes.every(
-    (snake) => (state.you.length > snake.length) || (
+  if (newState.board.snakes.every(
+    (snake) => (newState.you.length > snake.length) || (
       !(snake.head.x == myHead.x+2 && snake.head.y == myHead.y) &&
       !isOtherHeadUpRight(snake.head, myHead) &&
       !isOtherHeadDownRight(snake.head, myHead)
