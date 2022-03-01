@@ -22,7 +22,7 @@ function end(gameState) {
 
 function move(pool, gameState) {
   return new Promise((resolve) => {
-    if (gameState.turn < 3) {
+    if (gameState.turn < 1) {
       resolve(randomMove(gameState));
       return;
     }
