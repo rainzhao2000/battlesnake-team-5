@@ -76,7 +76,7 @@ function boxChar(color) {
   return `${color}${String.fromCharCode(9632)}${COLORS.Reset}`;
 }
 
-function printState({ board, you }) {
+function getOutputGrid({ board, you }) {
   const output = [];
   // print grid
   for (let row = 0; row < board.height; ++row) {
@@ -111,14 +111,35 @@ function printState({ board, you }) {
   try {
     output[board.height-1-you.head.y][you.head.x] = boxChar(COLORS.FgWhite);
   } catch (err) {}
+  return output;
+}
+
+function printGrid(grid) {
   console.error('-----------------------');
-  for (const row of output) {
+  for (const row of grid) {
     for (const text of row) {
       process.stderr.write(`${text} `);
     }
     process.stderr.write('\n');
   }
   process.stderr.write('\n');
+}
+
+function printState(state) {
+  printGrid(getOutputGrid(state));
+}
+
+function printSearchPath(node) {
+  let initial = node;
+  while (initial.parent) initial = initial.parent;
+  const grid = getOutputGrid(initial.state);
+  let curr = node;
+  while (curr.parent && curr.parent.parent) {
+    const row = grid[node.state.board.height-1-curr.state.you.head.y];
+    row[curr.state.you.head.x] = `${COLORS.BgBlue}${row[curr.state.you.head.x]}`;
+    curr = curr.parent;
+  }
+  printGrid(grid);
 }
 
 function hasEscape(node, numEvals = 1) {
@@ -215,6 +236,7 @@ function getResult(state, action) {
     }
   }
   const you = structuredClone(newBoard.snakes.find((snake) => snake.id == state.you.id));
+  if (!you) throw 'simulated death';
   // kill snakes marked for death
   newBoard.snakes = newBoard.snakes.filter((snake) => !snake.markedForDeath);
   return new State({ board: newBoard, you });
@@ -258,9 +280,9 @@ function getActionCost(state, action, newState) {
 function isGoal(node) {
   const me = node.state.you;
   // hungry and food and escape goal
-  return me && me.health < 80 && node.state.board.food.some(
+  return /*me && me.health < 80 && */node.state.board.food.some(
     (foo) => foo.x == me.head.x && foo.y == me.head.y
-  ) && hasEscape(node);
+  )// && hasEscape(node);
 }
 
 class MinHeap {
@@ -360,10 +382,15 @@ class MinHeap {
 function expand(node) {
   const s = node.state;
   return getActions(s).map((action) => {
-    const newS = getResult(s, action);
+    let newS;
+    try {
+      newS = getResult(s, action);
+    } catch (err) {
+      return null;
+    }
     const cost = node.pathCost + getActionCost(s, action, newS);
     return new Node(newS, node, action, cost);
-  });
+  }).filter((node) => node != null);
 }
 
 function bestFirstSearch(state, evalFn, aboutToTimeout) {
@@ -374,6 +401,7 @@ function bestFirstSearch(state, evalFn, aboutToTimeout) {
   let numSearched = 0;
   while (!frontier.isEmpty()) {
     node = frontier.pop();
+    printSearchPath(node);
     if (aboutToTimeout()) {
       console.error(`search timeout | searched ${numSearched} states`);
       return node;
@@ -405,7 +433,7 @@ function getTimeout() {
   const startTime = new Date();
   return () => {
     const currentTime = new Date();
-    return currentTime-startTime > 400;
+    return currentTime-startTime > 4000;
   }
 }
 
@@ -415,7 +443,6 @@ function manhattanDistance(a, b) {
 
 function heuristicCost(node) {
   const maxDistance = node.state.board.width + node.state.board.height;
-  if (!node.state.you) return maxDistance; // we died
   // manhattan distance to nearest food
   if (heuristicCost.nearestFood &&
     node.state.board.food.some(
@@ -440,7 +467,7 @@ function aStarSearch(gameState) {
     return node.pathCost + heuristicCost(node);
   }, getTimeout());
   // backtrack from goal to find the action taken
-  // let pathToGoal = [goal.state]; // for debugging
+  // const pathToGoal = [goal.state]; // for debugging
   let node = goal;
   while (node.parent && node.parent.parent) {
     node = node.parent;
