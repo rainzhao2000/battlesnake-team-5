@@ -134,7 +134,7 @@ function printSearchPath(node) {
   while (initial.parent) initial = initial.parent;
   const grid = getOutputGrid(initial.state);
   let curr = node;
-  while (curr.parent && curr.parent.parent) {
+  while (curr.parent) {
     const row = grid[node.state.board.height-1-curr.state.you.head.y];
     row[curr.state.you.head.x] = `${COLORS.BgBlue}${row[curr.state.you.head.x]}`;
     curr = curr.parent;
@@ -280,9 +280,9 @@ function getActionCost(state, action, newState) {
 function isGoal(node) {
   const me = node.state.you;
   // hungry and food and escape goal
-  return /*me && me.health < 80 && */node.state.board.food.some(
+  return node.state.board.food.some(
     (foo) => foo.x == me.head.x && foo.y == me.head.y
-  )// && hasEscape(node);
+  ) && hasEscape(node);
 }
 
 class MinHeap {
