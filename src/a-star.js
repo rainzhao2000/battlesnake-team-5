@@ -401,7 +401,7 @@ function bestFirstSearch(state, evalFn, aboutToTimeout) {
   let numSearched = 0;
   while (!frontier.isEmpty()) {
     node = frontier.pop();
-    printSearchPath(node);
+    // printSearchPath(node);
     if (aboutToTimeout()) {
       console.error(`search timeout | searched ${numSearched} states`);
       return node;
@@ -433,7 +433,7 @@ function getTimeout() {
   const startTime = new Date();
   return () => {
     const currentTime = new Date();
-    return currentTime-startTime > 4000;
+    return currentTime-startTime > 400;
   }
 }
 
@@ -442,18 +442,20 @@ function manhattanDistance(a, b) {
 }
 
 function heuristicCost(node) {
-  const maxDistance = node.state.board.width + node.state.board.height;
-  // manhattan distance to nearest food
+  // manhattan distance to nearest food from initial state
+  let initial = node;
+  while (initial.parent) initial = initial.parent;
+  const maxDistance = initial.state.board.width + initial.state.board.height;
   if (heuristicCost.nearestFood &&
     node.state.board.food.some(
       (foo) => foo.x == heuristicCost.nearestFood.x && foo.y == heuristicCost.nearestFood.y
     )
   ) { // if cached nearest food still exists
-    return manhattanDistance(node.state.you.head, heuristicCost.nearestFood);
+    return manhattanDistance(initial.state.you.head, heuristicCost.nearestFood);
   }
   let minDistance = maxDistance;
   for (const foo of node.state.board.food) {
-    const d = manhattanDistance(node.state.you.head, foo);
+    const d = manhattanDistance(initial.state.you.head, foo);
     if (d < minDistance) {
       minDistance = d;
       heuristicCost.nearestFood = foo;
