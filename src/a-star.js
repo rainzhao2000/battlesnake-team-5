@@ -1,6 +1,8 @@
 // reference: Chapter 3 of Russell, S. J., Norvig, P., & Chang, M.-W. (2021). Artificial Intelligence: A modern approach. Pearson.
 
-const { getSafeMoves } = require('./safe-moves');
+const {
+  getSafeMoves, isOtherHeadUpLeft, isOtherHeadUpRight, isOtherHeadDownLeft, isOtherHeadDownRight
+} = require('./safe-moves');
 const v8 = require('v8');
 
 const structuredClone = obj => {
@@ -219,8 +221,38 @@ function getResult(state, action) {
 }
 
 function getActionCost(state, action, newState) {
-  // temporary naive assumption
-  return 1;
+  const myHead = state.you.head;
+  const costIncrement = Math.floor((state.board.width+state.board.height)/2);
+  let cost = 1;
+  if (state.board.snakes.every(
+    (snake) => (state.you.length > snake.length) || (
+      !(snake.head.x == myHead.x && snake.head.y == myHead.y+2) &&
+      !isOtherHeadUpLeft(snake.head, myHead) &&
+      !isOtherHeadUpRight(snake.head, myHead)
+    )
+  )) cost += costIncrement;
+  if (state.board.snakes.every(
+    (snake) => (state.you.length > snake.length) || (
+      !(snake.head.x == myHead.x && snake.head.y == myHead.y-2) &&
+      !isOtherHeadDownLeft(snake.head, myHead) &&
+      !isOtherHeadDownRight(snake.head, myHead)
+    )
+  )) cost += costIncrement;
+  if (state.board.snakes.every(
+    (snake) => (state.you.length > snake.length) || (
+      !(snake.head.x == myHead.x-2 && snake.head.y == myHead.y) &&
+      !isOtherHeadUpLeft(snake.head, myHead) &&
+      !isOtherHeadDownLeft(snake.head, myHead)
+    )
+  )) cost += costIncrement;
+  if (state.board.snakes.every(
+    (snake) => (state.you.length > snake.length) || (
+      !(snake.head.x == myHead.x+2 && snake.head.y == myHead.y) &&
+      !isOtherHeadUpRight(snake.head, myHead) &&
+      !isOtherHeadDownRight(snake.head, myHead)
+    )
+  )) cost += costIncrement;
+  return cost;
 }
 
 function isGoal(node) {
@@ -405,7 +437,7 @@ function heuristicCost(node) {
 
 function aStarSearch(gameState) {
   const goal = bestFirstSearch(new State(gameState), (node) => {
-    return /*node.pathCost + */heuristicCost(node);
+    return node.pathCost + heuristicCost(node);
   }, getTimeout());
   // backtrack from goal to find the action taken
   // let pathToGoal = [goal.state]; // for debugging

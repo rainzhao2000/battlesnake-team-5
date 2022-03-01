@@ -66,39 +66,13 @@ function getSafeMoves(gameState) {
     )
   );
 
-  // Don't head on with longer snakes
-  possibleMoves.up = possibleMoves.up && gameState.board.snakes.every(
-    (snake) => (gameState.you.length > snake.length) || (
-      !(snake.head.x == myHead.x && snake.head.y == myHead.y+2) &&
-      !isOtherHeadUpLeft(snake.head, myHead) &&
-      !isOtherHeadUpRight(snake.head, myHead)
-    )
-  );
-  possibleMoves.down = possibleMoves.down && gameState.board.snakes.every(
-    (snake) => (gameState.you.length > snake.length) || (
-      !(snake.head.x == myHead.x && snake.head.y == myHead.y-2) &&
-      !isOtherHeadDownLeft(snake.head, myHead) &&
-      !isOtherHeadDownRight(snake.head, myHead)
-    )
-  );
-  possibleMoves.left = possibleMoves.left && gameState.board.snakes.every(
-    (snake) => (gameState.you.length > snake.length) || (
-      !(snake.head.x == myHead.x-2 && snake.head.y == myHead.y) &&
-      !isOtherHeadUpLeft(snake.head, myHead) &&
-      !isOtherHeadDownLeft(snake.head, myHead)
-    )
-  );
-  possibleMoves.right = possibleMoves.right && gameState.board.snakes.every(
-    (snake) => (gameState.you.length > snake.length) || (
-      !(snake.head.x == myHead.x+2 && snake.head.y == myHead.y) &&
-      !isOtherHeadUpRight(snake.head, myHead) &&
-      !isOtherHeadDownRight(snake.head, myHead)
-    )
-  );
-
   return Object.keys(possibleMoves).filter(key => possibleMoves[key])
 }
 
 module.exports = {
-  getSafeMoves: getSafeMoves
+  getSafeMoves: getSafeMoves,
+  isOtherHeadUpLeft: isOtherHeadUpLeft,
+  isOtherHeadUpRight: isOtherHeadUpRight,
+  isOtherHeadDownLeft: isOtherHeadDownLeft,
+  isOtherHeadDownRight: isOtherHeadDownRight
 }
