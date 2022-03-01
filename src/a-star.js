@@ -222,7 +222,7 @@ function getResult(state, action) {
 
 function getActionCost(state, action, newState) {
   const myHead = state.you.head;
-  const costIncrement = Math.floor((state.board.width+state.board.height)/2);
+  const costIncrement = state.board.width * state.board.height;
   let cost = 1;
   if (state.board.snakes.every(
     (snake) => (state.you.length > snake.length) || (
@@ -258,7 +258,7 @@ function getActionCost(state, action, newState) {
 function isGoal(node) {
   const me = node.state.you;
   // hungry and food and escape goal
-  return me && me.health < 50 && node.state.board.food.some(
+  return me && me.health < 80 && node.state.board.food.some(
     (foo) => foo.x == me.head.x && foo.y == me.head.y
   ) && hasEscape(node);
 }
@@ -405,7 +405,7 @@ function getTimeout() {
   const startTime = new Date();
   return () => {
     const currentTime = new Date();
-    return currentTime-startTime > 300;
+    return currentTime-startTime > 400;
   }
 }
 
