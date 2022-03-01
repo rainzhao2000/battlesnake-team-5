@@ -13,16 +13,12 @@ class Board {
   food;
   // hazards;
   snakes;
-  eatenFood = [];
   constructor(gameBoard) {
     this.width = gameBoard.width;
     this.height = gameBoard.height;
     this.food = gameBoard.food;
     // this.hazards = gameBoard.hazards;
     this.snakes = gameBoard.snakes;
-    if (gameBoard.eatenFood != undefined) {
-      this.eatenFood = gameBoard.eatenFood;
-    }
   }
 }
 
@@ -123,23 +119,14 @@ function printState({ board, you }) {
   process.stderr.write('\n');
 }
 
-function didEatFood(newHead, food) {
-  for (const [i, foo] of food.entries()) {
-    if (newHead.x == foo.x && newHead.y == foo.y) {
-      return { foodIdx: i };
-    }
-  }
-  return false;
-}
-
 function hasEscape(node, numEvals = 1) {
   const children = expand(node);
   if (children.length > 1) {
-    console.error(`+ ${numEvals} searches for escape`);
+    console.error(`found escape | searched ${numEvals} states`);
     return true;
   }
   if (children.length < 1) {
-    console.error(`+ ${numEvals} searches for escape`);
+    console.error(`no escape | searched ${numEvals} states`);
     return false;
   }
   return children.some((child) => hasEscape(child, numEvals+1));
@@ -153,9 +140,7 @@ function getActions(state) {
 function getResult(state, action) {
   const newBoard = structuredClone(state.board);
   // assume no new food and remove eaten food
-  for (const foodIdx of newBoard.eatenFood) {
-    newBoard.food.splice(foodIdx, 1);
-  }
+  newBoard.food = newBoard.food.filter((foo) => !foo.consumed);
   // update your head pos
   const myHead = structuredClone(state.you.head);
   switch (action) {
@@ -167,10 +152,10 @@ function getResult(state, action) {
   // update all snakes before collision
   for (const [i, snake] of state.board.snakes.entries()) {
     const newSnake = newBoard.snakes[i];
-    // assume no intelligence i.e naively move other snake heads forward
     if (snake.id == state.you.id) {
       newSnake.head = myHead;
     } else {
+      // assume no intelligence i.e naively move other snake heads forward
       if (snake.head.x == snake.body[1].x && snake.head.y == snake.body[1].y+1) { // moving up
         newSnake.head.y += 1;
       } else if (snake.head.x == snake.body[1].x && snake.head.y == snake.body[1].y-1) { // moving down
@@ -184,10 +169,10 @@ function getResult(state, action) {
       }
     }
     // check if food was eaten
-    const ateFood = didEatFood(newSnake.head, state.board.food);
+    const ateFood = newBoard.food.find((foo) => foo.x == newSnake.head.x && foo.y == newSnake.head.y);
     if (ateFood) {
       // mark eaten food for deletion next tick and increase length
-      newBoard.eatenFood.push(ateFood.foodIdx);
+      ateFood.consumed = true;
       newSnake.length += 1;
       newSnake.health = 100;
     } else {
@@ -195,8 +180,7 @@ function getResult(state, action) {
       newSnake.body.pop();
       newSnake.health -= 1;
       if (newSnake.health == 0) {
-        // kill snake immediately
-        newSnake.markedForDeath;
+        newSnake.markedForDeath = true;
         continue;
       }
     }
@@ -394,11 +378,13 @@ function manhattanDistance(a, b) {
 }
 
 function heuristicCost(node) {
+  const maxDistance = node.state.board.width + node.state.board.height;
+  if (!node.state.you) return maxDistance; // we died
   // manhattan distance to nearest food
   if (heuristicCost.nearestFood) { // cached nearest food
     return manhattanDistance(node.state.you.head, heuristicCost.nearestFood);
   }
-  let minDistance = node.state.board.width + node.state.board.height;
+  let minDistance = maxDistance;
   for (const foo of node.state.board.food) {
     const d = manhattanDistance(node.state.you.head, foo);
     if (d < minDistance) {
