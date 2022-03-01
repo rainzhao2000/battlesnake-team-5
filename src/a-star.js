@@ -311,7 +311,7 @@ class MinHeap {
   }
   fixDown(k) {
     while (!this.isLeaf(k)) {
-      // Find the child with the larger key
+      // Find the child with the smaller key
       let leftIdx = this.leftIndex(k);
       const rightIdx = this.rightIndex(k);
       if (leftIdx != this.lastIndex() && this.evalFn(this.#arr[rightIdx]) < this.evalFn(this.#arr[leftIdx])) {
@@ -372,7 +372,7 @@ function getTimeout() {
   const startTime = new Date();
   return () => {
     const currentTime = new Date();
-    return currentTime-startTime > 200;
+    return currentTime-startTime > 300;
   }
 }
 
@@ -384,7 +384,11 @@ function heuristicCost(node) {
   const maxDistance = node.state.board.width + node.state.board.height;
   if (!node.state.you) return maxDistance; // we died
   // manhattan distance to nearest food
-  if (heuristicCost.nearestFood) { // cached nearest food
+  if (heuristicCost.nearestFood &&
+    node.state.board.food.some(
+      (foo) => foo.x == heuristicCost.nearestFood.x && foo.y == heuristicCost.nearestFood.y
+    )
+  ) { // if cached nearest food still exists
     return manhattanDistance(node.state.you.head, heuristicCost.nearestFood);
   }
   let minDistance = maxDistance;
