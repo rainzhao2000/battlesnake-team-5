@@ -340,8 +340,11 @@ function bestFirstSearch(state, evalFn, aboutToTimeout) {
   reached.set(state, node);
   let numSearched = 0;
   while (!frontier.isEmpty()) {
-    if (aboutToTimeout()) throw `search timeout | searched ${numSearched} states`;
     node = frontier.pop();
+    if (aboutToTimeout()) {
+      console.error(`search timeout | searched ${numSearched} states`);
+      return node;
+    }
     numSearched += 1;
     const children = expand(node);
     if (children.length == 0) continue; // dead end
