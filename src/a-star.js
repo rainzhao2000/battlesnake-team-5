@@ -277,12 +277,18 @@ function getActionCost(state, action, newState) {
   return cost;
 }
 
-function isGoal(node) {
+function isFoodGoal(node) {
   const me = node.state.you;
-  // hungry and food and escape goal
+  // food and escape goal
   return node.state.board.food.some(
     (foo) => foo.x == me.head.x && foo.y == me.head.y
   ) && hasEscape(node);
+}
+
+function isCenterGoal(node) {
+  const { width, height } = node.state.board;
+  const { x, y } = node.state.you.head;
+  return width/3 < x && x <= width*2/3 && height/3 < y && y <= height*2/3;
 }
 
 class MinHeap {
@@ -394,6 +400,7 @@ function expand(node) {
 }
 
 function bestFirstSearch(state, evalFn, aboutToTimeout) {
+  // const isHungry = state.you.health < 50;
   let node = new Node(state, null, null, 0);
   const frontier = new MinHeap(evalFn, node);
   const reached = new Map();
@@ -409,7 +416,9 @@ function bestFirstSearch(state, evalFn, aboutToTimeout) {
     numSearched += 1;
     const children = expand(node);
     if (children.length == 0) continue; // dead end
-    if (isGoal(node)) return node;
+    // if (isHungry) {
+      if (isFoodGoal(node)) return node;
+    // } else if (isCenterGoal(node)) return node;
     for (const child of children) {
       const s = child.state;
       if (!reached.has(s) || child.pathCost < reached.get(s).pathCost) {

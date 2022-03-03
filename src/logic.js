@@ -5,7 +5,7 @@ function info() {
   const response = {
     apiversion: "1",
     author: "",
-    color: "#6eab61",
+    color: "#063c24",
     head: "evil",
     tail: "bolt"
   }
