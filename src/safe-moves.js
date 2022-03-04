@@ -45,25 +45,41 @@ function getSafeMoves(gameState) {
     (snake) => !(snake.head.x == myHead.x+1 && snake.head.y == myHead.y)
   );
 
-  // Don't hit any snake bodies
+  // Don't hit any snake bodies except your own tail
   possibleMoves.up = possibleMoves.up && snakes.every(
     (snake) => snake.body.every(
-      (segment) => !(segment.x == myHead.x && segment.y == myHead.y+1)
+      (segment, i) => (snake.id == gameState.you.id &&
+                       i == snake.length-1 &&
+                       segment.x == myHead.x &&
+                       segment.y == myHead.y+1) ||
+        !(segment.x == myHead.x && segment.y == myHead.y+1)
     )
   );
   possibleMoves.down = possibleMoves.down && snakes.every(
     (snake) => snake.body.every(
-      (segment) => !(segment.x == myHead.x && segment.y == myHead.y-1)
+      (segment, i) => (snake.id == gameState.you.id &&
+                       i == snake.length-1 &&
+                       segment.x == myHead.x &&
+                       segment.y == myHead.y-1) ||
+        !(segment.x == myHead.x && segment.y == myHead.y-1)
     )
   );
   possibleMoves.left = possibleMoves.left && snakes.every(
     (snake) => snake.body.every(
-      (segment) => !(segment.x == myHead.x-1 && segment.y == myHead.y)
+      (segment, i) => (snake.id == gameState.you.id &&
+                       i == snake.length-1 &&
+                       segment.x == myHead.x-1 &&
+                       segment.y == myHead.y) ||
+        !(segment.x == myHead.x-1 && segment.y == myHead.y)
     )
   );
   possibleMoves.right = possibleMoves.right && snakes.every(
     (snake) => snake.body.every(
-      (segment) => !(segment.x == myHead.x+1 && segment.y == myHead.y)
+      (segment, i) => (snake.id == gameState.you.id &&
+                       i == snake.length-1 &&
+                       segment.x == myHead.x+1 &&
+                       segment.y == myHead.y) ||
+        !(segment.x == myHead.x+1 && segment.y == myHead.y)
     )
   );
 
