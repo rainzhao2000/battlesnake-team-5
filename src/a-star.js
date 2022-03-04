@@ -423,23 +423,23 @@ function manhattanDistance(a, b) {
 }
 
 function foodHeuristicCost(node) {
-  if (!heuristicCost.initial) { // get initial state
-    heuristicCost.initial = node;
-    while (heuristicCost.initial.parent) heuristicCost.initial = heuristicCost.initial.parent;
+  if (!foodHeuristicCost.initial) { // get initial state
+    foodHeuristicCost.initial = node;
+    while (foodHeuristicCost.initial.parent) foodHeuristicCost.initial = foodHeuristicCost.initial.parent;
   }
-  if (heuristicCost.nearestFood &&
+  if (foodHeuristicCost.nearestFood &&
     node.state.board.food.some(
-      (foo) => foo.x == heuristicCost.nearestFood.x && foo.y == heuristicCost.nearestFood.y
+      (foo) => foo.x == foodHeuristicCost.nearestFood.x && foo.y == foodHeuristicCost.nearestFood.y
     )
   ) { // if cached nearest food still exists
-    return manhattanDistance(heuristicCost.initial.state.you.head, heuristicCost.nearestFood);
+    return manhattanDistance(foodHeuristicCost.initial.state.you.head, foodHeuristicCost.nearestFood);
   }
-  let minDistance = heuristicCost.initial.state.board.width + heuristicCost.initial.state.board.height;
+  let minDistance = foodHeuristicCost.initial.state.board.width + foodHeuristicCost.initial.state.board.height;
   for (const foo of node.state.board.food) {
-    const d = manhattanDistance(heuristicCost.initial.state.you.head, foo);
+    const d = manhattanDistance(foodHeuristicCost.initial.state.you.head, foo);
     if (d < minDistance) {
       minDistance = d;
-      heuristicCost.nearestFood = foo;
+      foodHeuristicCost.nearestFood = foo;
     }
   }
   return minDistance;
@@ -455,7 +455,7 @@ function aStarSearch(gameState) {
   let heuristicCost;
   switch (mode) {
     case SEARCH_MODE.FOOD_GOAL: heuristicCost = foodHeuristicCost; break;
-    // Could make snake roam more by using food heuristic all the time
+    // using food heuristic all the time could be interesting
     case SEARCH_MODE.TAIL_GOAL: heuristicCost = tailHeuristicCost; break;
     default: throw 'invalid search mode';
   }
