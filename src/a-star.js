@@ -1,8 +1,6 @@
 // reference: Chapter 3 of Russell, S. J., Norvig, P., & Chang, M.-W. (2021). Artificial Intelligence: A modern approach. Pearson.
 
-const {
-  getSafeMoves, isOtherHeadUpLeft, isOtherHeadUpRight, isOtherHeadDownLeft, isOtherHeadDownRight
-} = require('./safe-moves');
+const { getSafeMoves } = require('./safe-moves');
 const v8 = require('v8');
 
 const structuredClone = obj => {
@@ -95,22 +93,30 @@ function getOutputGrid({ board, you }) {
       for (const segment of snake.body) {
         try {
           output[board.height-1-segment.y][segment.x] = boxChar(COLORS.FgRed);
-        } catch (err) {}
+        } catch (err) {
+          console.error(err);
+        }
       }
       try {
         output[board.height-1-snake.head.y][snake.head.x] = boxChar(COLORS.FgYellow);
-      } catch (err) {}
+      } catch (err) {
+        console.error(err);
+      }
     }
   }
   // print you
   for (const segment of you.body) {
     try {
       output[board.height-1-segment.y][segment.x] = boxChar(COLORS.FgGreen);
-    } catch (err) {}
+    } catch (err) {
+      console.error(err);
+    }
   }
   try {
     output[board.height-1-you.head.y][you.head.x] = boxChar(COLORS.FgWhite);
-  } catch (err) {}
+  } catch (err) {
+    console.error(err);
+  }
   return output;
 }
 
@@ -142,21 +148,24 @@ function printSearchPath(node) {
   printGrid(grid);
 }
 
-function hasEscape(node, numEvals = 1) {
-  const children = expand(node);
-  if (children.length > 1) {
-    console.error(`found escape | searched ${numEvals} states`);
-    return true;
-  }
-  if (children.length < 1) {
-    console.error(`no escape | searched ${numEvals} states`);
-    return false;
-  }
-  return children.some((child) => hasEscape(child, numEvals+1));
-}
-
 function getActions(state) {
   return getSafeMoves(state);
+}
+
+function isMovingUp(snake) {
+  return snake.head.x == snake.body[1].x && snake.head.y == snake.body[1].y+1;
+}
+
+function isMovingDown(snake) {
+  return snake.head.x == snake.body[1].x && snake.head.y == snake.body[1].y-1;
+}
+
+function isMovingLeft(snake) {
+  return snake.head.x == snake.body[1].x-1 && snake.head.y == snake.body[1].y;
+}
+
+function isMovingRight(snake) {
+  return snake.head.x == snake.body[1].x+1 && snake.head.y == snake.body[1].y;
 }
 
 // simulate the next game state
@@ -179,17 +188,11 @@ function getResult(state, action) {
       newSnake.head = myHead;
     } else {
       // assume no intelligence i.e naively move other snake heads forward
-      if (snake.head.x == snake.body[1].x && snake.head.y == snake.body[1].y+1) { // moving up
-        newSnake.head.y += 1;
-      } else if (snake.head.x == snake.body[1].x && snake.head.y == snake.body[1].y-1) { // moving down
-        newSnake.head.y -= 1;
-      } else if (snake.head.x == snake.body[1].x-1 && snake.head.y == snake.body[1].y) { // moving left
-        newSnake.head.x -= 1;
-      } else if (snake.head.x == snake.body[1].x+1 && snake.head.y == snake.body[1].y) { // moving right
-        newSnake.head.x += 1;
-      } else {
-        throw ['fuc> ', snake.head, snake.body];
-      }
+      if (isMovingUp(snake)) newSnake.head.y += 1;
+      else if (isMovingDown(snake)) newSnake.head.y -= 1;
+      else if (isMovingLeft(snake)) newSnake.head.x -= 1;
+      else if (isMovingRight(snake)) newSnake.head.x += 1;
+      else throw ['fuc> ', snake.head, snake.body];
     }
     // check if food was eaten
     const ateFood = newBoard.food.find((foo) => foo.x == newSnake.head.x && foo.y == newSnake.head.y);
@@ -243,38 +246,20 @@ function getResult(state, action) {
 }
 
 function getActionCost(state, action, newState) {
-  const myHead = newState.you.head;
-  const costIncrement = state.board.width * state.board.height;
-  let cost = 1;
-  if (newState.board.snakes.every(
-    (snake) => (newState.you.length > snake.length) || (
-      !(snake.head.x == myHead.x && snake.head.y == myHead.y+2) &&
-      !isOtherHeadUpLeft(snake.head, myHead) &&
-      !isOtherHeadUpRight(snake.head, myHead)
-    )
-  )) cost += costIncrement;
-  if (newState.board.snakes.every(
-    (snake) => (newState.you.length > snake.length) || (
-      !(snake.head.x == myHead.x && snake.head.y == myHead.y-2) &&
-      !isOtherHeadDownLeft(snake.head, myHead) &&
-      !isOtherHeadDownRight(snake.head, myHead)
-    )
-  )) cost += costIncrement;
-  if (newState.board.snakes.every(
-    (snake) => (newState.you.length > snake.length) || (
-      !(snake.head.x == myHead.x-2 && snake.head.y == myHead.y) &&
-      !isOtherHeadUpLeft(snake.head, myHead) &&
-      !isOtherHeadDownLeft(snake.head, myHead)
-    )
-  )) cost += costIncrement;
-  if (newState.board.snakes.every(
-    (snake) => (newState.you.length > snake.length) || (
-      !(snake.head.x == myHead.x+2 && snake.head.y == myHead.y) &&
-      !isOtherHeadUpRight(snake.head, myHead) &&
-      !isOtherHeadDownRight(snake.head, myHead)
-    )
-  )) cost += costIncrement;
-  return cost;
+  return 1;
+}
+
+function hasEscape(node, numEvals = 1) {
+  const children = expand(node);
+  if (children.length > 1) {
+    console.error(`found escape | searched ${numEvals} states`);
+    return true;
+  }
+  if (children.length < 1) {
+    console.error(`no escape | searched ${numEvals} states`);
+    return false;
+  }
+  return children.some((child) => hasEscape(child, numEvals+1));
 }
 
 function isFoodGoal(node) {
@@ -285,10 +270,11 @@ function isFoodGoal(node) {
   ) && hasEscape(node);
 }
 
-function isCenterGoal(node) {
-  const { width, height } = node.state.board;
-  const { x, y } = node.state.you.head;
-  return width/3 < x && x <= width*2/3 && height/3 < y && y <= height*2/3;
+function isTailGoal(node) {
+  const me = node.state.you;
+  const dx = me.body[me.length-1].x - me.head.x;
+  const dy = me.body[me.length-1].y - me.head.y;
+  return Math.abs(dx) + Math.abs(dy) == 1;
 }
 
 class MinHeap {
@@ -385,6 +371,11 @@ class MinHeap {
   }
 }
 
+const SEARCH_MODE = {
+  FOOD_GOAL: 0,
+  TAIL_GOAL: 1
+}
+
 function expand(node) {
   const s = node.state;
   return getActions(s).map((action) => {
@@ -399,43 +390,40 @@ function expand(node) {
   }).filter((node) => node != null);
 }
 
-function bestFirstSearch(state, evalFn, aboutToTimeout) {
-  // const isHungry = state.you.health < 50;
-  let node = new Node(state, null, null, 0);
-  const frontier = new MinHeap(evalFn, node);
-  const reached = new Map();
-  reached.set(state, node);
-  let numSearched = 0;
-  while (!frontier.isEmpty()) {
-    node = frontier.pop();
-    // printSearchPath(node);
-    if (aboutToTimeout()) {
-      console.error(`search timeout | searched ${numSearched} states`);
-      return node;
-    }
-    numSearched += 1;
-    const children = expand(node);
-    if (children.length == 0) continue; // dead end
-    // if (isHungry) {
-      if (isFoodGoal(node)) return node;
-    // } else if (isCenterGoal(node)) return node;
-    for (const child of children) {
-      const s = child.state;
-      if (!reached.has(s) || child.pathCost < reached.get(s).pathCost) {
-        reached.set(s, child);
-        frontier.insert(child);
+function bestFirstSearch(mode) {
+  let isGoal;
+  switch (mode) {
+    case SEARCH_MODE.FOOD_GOAL: isGoal = isFoodGoal; break;
+    case SEARCH_MODE.TAIL_GOAL: isGoal = isTailGoal; break;
+    default: throw 'invalid search mode';
+  }
+  return (state, evalFn, aboutToTimeout) => {
+    let node = new Node(state, null, null, 0);
+    const frontier = new MinHeap(evalFn, node);
+    const reached = new Map();
+    reached.set(state, node);
+    let numSearched = 0;
+    while (!frontier.isEmpty()) {
+      node = frontier.pop();
+      // printSearchPath(node);
+      if (aboutToTimeout()) {
+        console.error(`search timeout | searched ${numSearched} states`);
+        return node;
+      }
+      numSearched += 1;
+      const children = expand(node);
+      if (children.length == 0) continue; // dead end
+      if (isGoal(node)) return node;
+      for (const child of children) {
+        const s = child.state;
+        if (!reached.has(s) || child.pathCost < reached.get(s).pathCost) {
+          reached.set(s, child);
+          frontier.insert(child);
+        }
       }
     }
+    throw `no solution | searched ${numSearched} states`;
   }
-  throw `no solution | searched ${numSearched} states`;
-}
-
-function randomMove(gameState) {
-  console.error('moving randomly...');
-  const actions = getActions(new State(gameState));
-  return {
-      move: actions[Math.floor(Math.random() * actions.length)]
-  };
 }
 
 function getTimeout() {
@@ -450,33 +438,48 @@ function manhattanDistance(a, b) {
   return Math.abs(b.x-a.x) + Math.abs(b.y-a.y);
 }
 
-function heuristicCost(node) {
-  // manhattan distance to nearest food from initial state
-  let initial = node;
-  while (initial.parent) initial = initial.parent;
-  const maxDistance = initial.state.board.width + initial.state.board.height;
-  if (heuristicCost.nearestFood &&
+function foodHeuristicCost(node) {
+  if (!foodHeuristicCost.initial) { // get initial state
+    foodHeuristicCost.initial = node;
+    while (foodHeuristicCost.initial.parent) foodHeuristicCost.initial = foodHeuristicCost.initial.parent;
+  }
+  if (foodHeuristicCost.nearestFood &&
     node.state.board.food.some(
-      (foo) => foo.x == heuristicCost.nearestFood.x && foo.y == heuristicCost.nearestFood.y
+      (foo) => foo.x == foodHeuristicCost.nearestFood.x && foo.y == foodHeuristicCost.nearestFood.y
     )
   ) { // if cached nearest food still exists
-    return manhattanDistance(initial.state.you.head, heuristicCost.nearestFood);
+    return manhattanDistance(foodHeuristicCost.initial.state.you.head, foodHeuristicCost.nearestFood);
   }
-  let minDistance = maxDistance;
+  let minDistance = foodHeuristicCost.initial.state.board.width + foodHeuristicCost.initial.state.board.height;
   for (const foo of node.state.board.food) {
-    const d = manhattanDistance(initial.state.you.head, foo);
+    const d = manhattanDistance(foodHeuristicCost.initial.state.you.head, foo);
     if (d < minDistance) {
       minDistance = d;
-      heuristicCost.nearestFood = foo;
+      foodHeuristicCost.nearestFood = foo;
     }
   }
   return minDistance;
 }
 
+function tailHeuristicCost(node) {
+  const me = node.state.you;
+  return manhattanDistance(me.head, me.body[me.length-1]);
+}
+
 function aStarSearch(gameState) {
-  const goal = bestFirstSearch(new State(gameState), (node) => {
-    return node.pathCost + heuristicCost(node);
-  }, getTimeout());
+  const mode = gameState.you.health < 70 ? SEARCH_MODE.FOOD_GOAL : SEARCH_MODE.TAIL_GOAL;
+  let heuristicCost;
+  switch (mode) {
+    case SEARCH_MODE.FOOD_GOAL: heuristicCost = foodHeuristicCost; break;
+    // using food heuristic all the time could be interesting
+    case SEARCH_MODE.TAIL_GOAL: heuristicCost = tailHeuristicCost; break;
+    default: throw 'invalid search mode';
+  }
+  const goal = bestFirstSearch(mode)(
+    new State(gameState),
+    (node) => /*node.pathCost + */heuristicCost(node),
+    getTimeout()
+  );
   // backtrack from goal to find the action taken
   // const pathToGoal = [goal.state]; // for debugging
   let node = goal;
@@ -491,11 +494,27 @@ function aStarSearch(gameState) {
   return { move: node.action };
 }
 
+function defaultMove(gameState) {
+  // try to move forward, otherwise random
+  let move;
+  const actions = getActions(new State(gameState));
+  console.error('trying to move forward...');
+  if (actions.includes('up') && isMovingUp(gameState.you)) move = 'up';
+  else if (actions.includes('down') && isMovingDown(gameState.you)) move = 'down';
+  else if (actions.includes('left') && isMovingLeft(gameState.you)) move = 'left';
+  else if (actions.includes('right') && isMovingRight(gameState.you)) move = 'right';
+  else {
+    console.error('moving randomly...');
+    move = actions[Math.floor(Math.random() * actions.length)];
+  }
+  return { move };
+}
+
 module.exports = {
-  State: State,
-  Node: Node,
-  MinHeap: MinHeap,
-  bestFirstSearch: bestFirstSearch,
-  randomMove: randomMove,
-  aStarSearch: aStarSearch
+  State,
+  Node,
+  MinHeap,
+  bestFirstSearch,
+  aStarSearch,
+  defaultMove
 }

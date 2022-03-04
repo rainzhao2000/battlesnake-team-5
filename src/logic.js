@@ -1,4 +1,4 @@
-const { randomMove } = require('./a-star');
+const { defaultMove } = require('./a-star');
 
 function info() {
   console.log("INFO")
@@ -23,14 +23,14 @@ function end(gameState) {
 function move(pool, gameState) {
   return new Promise((resolve) => {
     if (gameState.turn < 1) {
-      resolve(randomMove(gameState));
+      resolve(defaultMove(gameState));
       return;
     }
     pool.runTask({ gameState }, (err, result) => {
       let response = result;
       if (err) {
         console.error(err);
-        response = randomMove(gameState);
+        response = defaultMove(gameState);
       }
       console.log(`${gameState.game.id} MOVE ${gameState.turn}: ${response.move}`);
       resolve(response);
