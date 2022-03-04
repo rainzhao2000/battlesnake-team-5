@@ -1,8 +1,6 @@
 // reference: Chapter 3 of Russell, S. J., Norvig, P., & Chang, M.-W. (2021). Artificial Intelligence: A modern approach. Pearson.
 
-const {
-  getSafeMoves, isOtherHeadUpLeft, isOtherHeadUpRight, isOtherHeadDownLeft, isOtherHeadDownRight
-} = require('./safe-moves');
+const { getSafeMoves } = require('./safe-moves');
 const v8 = require('v8');
 
 const structuredClone = obj => {
@@ -95,22 +93,30 @@ function getOutputGrid({ board, you }) {
       for (const segment of snake.body) {
         try {
           output[board.height-1-segment.y][segment.x] = boxChar(COLORS.FgRed);
-        } catch (err) {}
+        } catch (err) {
+          console.error(err);
+        }
       }
       try {
         output[board.height-1-snake.head.y][snake.head.x] = boxChar(COLORS.FgYellow);
-      } catch (err) {}
+      } catch (err) {
+        console.error(err);
+      }
     }
   }
   // print you
   for (const segment of you.body) {
     try {
       output[board.height-1-segment.y][segment.x] = boxChar(COLORS.FgGreen);
-    } catch (err) {}
+    } catch (err) {
+      console.error(err);
+    }
   }
   try {
     output[board.height-1-you.head.y][you.head.x] = boxChar(COLORS.FgWhite);
-  } catch (err) {}
+  } catch (err) {
+    console.error(err);
+  }
   return output;
 }
 
@@ -142,21 +148,24 @@ function printSearchPath(node) {
   printGrid(grid);
 }
 
-function hasEscape(node, numEvals = 1) {
-  const children = expand(node);
-  if (children.length > 1) {
-    console.error(`found escape | searched ${numEvals} states`);
-    return true;
-  }
-  if (children.length < 1) {
-    console.error(`no escape | searched ${numEvals} states`);
-    return false;
-  }
-  return children.some((child) => hasEscape(child, numEvals+1));
-}
-
 function getActions(state) {
   return getSafeMoves(state);
+}
+
+function isMovingUp(snake) {
+  return snake.head.x == snake.body[1].x && snake.head.y == snake.body[1].y+1;
+}
+
+function isMovingDown(snake) {
+  return snake.head.x == snake.body[1].x && snake.head.y == snake.body[1].y-1;
+}
+
+function isMovingLeft(snake) {
+  return snake.head.x == snake.body[1].x-1 && snake.head.y == snake.body[1].y;
+}
+
+function isMovingRight(snake) {
+  return snake.head.x == snake.body[1].x+1 && snake.head.y == snake.body[1].y;
 }
 
 // simulate the next game state
@@ -179,17 +188,11 @@ function getResult(state, action) {
       newSnake.head = myHead;
     } else {
       // assume no intelligence i.e naively move other snake heads forward
-      if (snake.head.x == snake.body[1].x && snake.head.y == snake.body[1].y+1) { // moving up
-        newSnake.head.y += 1;
-      } else if (snake.head.x == snake.body[1].x && snake.head.y == snake.body[1].y-1) { // moving down
-        newSnake.head.y -= 1;
-      } else if (snake.head.x == snake.body[1].x-1 && snake.head.y == snake.body[1].y) { // moving left
-        newSnake.head.x -= 1;
-      } else if (snake.head.x == snake.body[1].x+1 && snake.head.y == snake.body[1].y) { // moving right
-        newSnake.head.x += 1;
-      } else {
-        throw ['fuc> ', snake.head, snake.body];
-      }
+      if (isMovingUp(snake)) newSnake.head.y += 1;
+      else if (isMovingDown(snake)) newSnake.head.y -= 1;
+      else if (isMovingLeft(snake)) newSnake.head.x -= 1;
+      else if (isMovingRight(snake)) newSnake.head.x += 1;
+      else throw ['fuc> ', snake.head, snake.body];
     }
     // check if food was eaten
     const ateFood = newBoard.food.find((foo) => foo.x == newSnake.head.x && foo.y == newSnake.head.y);
@@ -244,6 +247,19 @@ function getResult(state, action) {
 
 function getActionCost(state, action, newState) {
   return 1;
+}
+
+function hasEscape(node, numEvals = 1) {
+  const children = expand(node);
+  if (children.length > 1) {
+    console.error(`found escape | searched ${numEvals} states`);
+    return true;
+  }
+  if (children.length < 1) {
+    console.error(`no escape | searched ${numEvals} states`);
+    return false;
+  }
+  return children.some((child) => hasEscape(child, numEvals+1));
 }
 
 function isFoodGoal(node) {
@@ -478,19 +494,27 @@ function aStarSearch(gameState) {
   return { move: node.action };
 }
 
-function randomMove(gameState) {
-  console.error('moving randomly...');
+function defaultMove(gameState) {
+  // try to move forward, otherwise random
+  let move;
   const actions = getActions(new State(gameState));
-  return {
-      move: actions[Math.floor(Math.random() * actions.length)]
-  };
+  console.error('trying to move forward...');
+  if (actions.includes('up') && isMovingUp(snake)) move = 'up';
+  else if (actions.includes('down') && isMovingDown(snake)) move = 'down';
+  else if (actions.includes('left') && isMovingLeft(snake)) move = 'left';
+  else if (actions.includes('right') && isMovingRight(snake)) move = 'right';
+  else {
+    console.error('moving randomly...');
+    move = actions[Math.floor(Math.random() * actions.length)];
+  }
+  return { move };
 }
 
 module.exports = {
-  State: State,
-  Node: Node,
-  MinHeap: MinHeap,
-  bestFirstSearch: bestFirstSearch,
-  aStarSearch: aStarSearch,
-  randomMove: randomMove
+  State,
+  Node,
+  MinHeap,
+  bestFirstSearch,
+  aStarSearch,
+  defaultMove
 }

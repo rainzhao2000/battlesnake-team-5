@@ -128,9 +128,5 @@ function getSafeMoves(gameState) {
 }
 
 module.exports = {
-  getSafeMoves: getSafeMoves,
-  isOtherHeadUpLeft: isOtherHeadUpLeft,
-  isOtherHeadUpRight: isOtherHeadUpRight,
-  isOtherHeadDownLeft: isOtherHeadDownLeft,
-  isOtherHeadDownRight: isOtherHeadDownRight
+  getSafeMoves
 }
