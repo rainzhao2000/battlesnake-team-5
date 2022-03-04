@@ -467,7 +467,7 @@ function tailHeuristicCost(node) {
 }
 
 function aStarSearch(gameState) {
-  const mode = gameState.you.health < 50 ? SEARCH_MODE.FOOD_GOAL : SEARCH_MODE.TAIL_GOAL;
+  const mode = gameState.you.health < 70 ? SEARCH_MODE.FOOD_GOAL : SEARCH_MODE.TAIL_GOAL;
   let heuristicCost;
   switch (mode) {
     case SEARCH_MODE.FOOD_GOAL: heuristicCost = foodHeuristicCost; break;
@@ -477,7 +477,7 @@ function aStarSearch(gameState) {
   }
   const goal = bestFirstSearch(mode)(
     new State(gameState),
-    (node) => node.pathCost + heuristicCost(node),
+    (node) => /*node.pathCost + */heuristicCost(node),
     getTimeout()
   );
   // backtrack from goal to find the action taken

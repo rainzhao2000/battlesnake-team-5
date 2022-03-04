@@ -30,6 +30,14 @@ function isOtherHeadDownRight(otherHead, myHead) {
   return otherHead.x == myHead.x+1 && otherHead.y == myHead.y-1;
 }
 
+function isSnakeNearFood(snake, food) {
+  return food.some((foo) => {
+    const dx = foo.x - snake.head.x;
+    const dy = foo.y - snake.head.y;
+    return Math.abs(dx) + Math.abs(dy) == 1;
+  });
+}
+
 function getSafeMoves(gameState) {
   if (!gameState.you) return [];
   const possibleMoves = {
@@ -64,25 +72,25 @@ function getSafeMoves(gameState) {
   // Don't hit any snake bodies except tails
   possibleMoves.up = possibleMoves.up && snakes.every(
     (snake) => snake.body.every(
-      (segment, i) => (i == snake.length-1 && isUp(segment, myHead)) ||
+      (segment, i) => (i == snake.length-1 && isUp(segment, myHead) && !isSnakeNearFood(snake, gameState.board.food)) ||
         !isUp(segment, myHead)
     )
   );
   possibleMoves.down = possibleMoves.down && snakes.every(
     (snake) => snake.body.every(
-      (segment, i) => (i == snake.length-1 && isDown(segment, myHead)) ||
+      (segment, i) => (i == snake.length-1 && isDown(segment, myHead) && !isSnakeNearFood(snake, gameState.board.food)) ||
         !isDown(segment, myHead)
     )
   );
   possibleMoves.left = possibleMoves.left && snakes.every(
     (snake) => snake.body.every(
-      (segment, i) => (i == snake.length-1 && isLeft(segment, myHead)) ||
+      (segment, i) => (i == snake.length-1 && isLeft(segment, myHead) && !isSnakeNearFood(snake, gameState.board.food)) ||
         !isLeft(segment, myHead)
     )
   );
   possibleMoves.right = possibleMoves.right && snakes.every(
     (snake) => snake.body.every(
-      (segment, i) => (i == snake.length-1 && isRight(segment, myHead)) ||
+      (segment, i) => (i == snake.length-1 && isRight(segment, myHead) && !isSnakeNearFood(snake, gameState.board.food)) ||
         !isRight(segment, myHead)
     )
   );
