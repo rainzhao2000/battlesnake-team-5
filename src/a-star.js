@@ -499,10 +499,10 @@ function defaultMove(gameState) {
   let move;
   const actions = getActions(new State(gameState));
   console.error('trying to move forward...');
-  if (actions.includes('up') && isMovingUp(snake)) move = 'up';
-  else if (actions.includes('down') && isMovingDown(snake)) move = 'down';
-  else if (actions.includes('left') && isMovingLeft(snake)) move = 'left';
-  else if (actions.includes('right') && isMovingRight(snake)) move = 'right';
+  if (actions.includes('up') && isMovingUp(gameState.you)) move = 'up';
+  else if (actions.includes('down') && isMovingDown(gameState.you)) move = 'down';
+  else if (actions.includes('left') && isMovingLeft(gameState.you)) move = 'left';
+  else if (actions.includes('right') && isMovingRight(gameState.you)) move = 'right';
   else {
     console.error('moving randomly...');
     move = actions[Math.floor(Math.random() * actions.length)];
