@@ -379,7 +379,7 @@ function bestFirstSearch(mode) {
   switch (mode) {
     case SEARCH_MODE.FOOD_GOAL: isGoal = isFoodGoal; break;
     case SEARCH_MODE.TAIL_GOAL: isGoal = isTailGoal; break;
-    default: throw 'invalid goal';
+    default: throw 'invalid search mode';
   }
   return (state, evalFn, aboutToTimeout) => {
     let node = new Node(state, null, null, 0);
@@ -410,14 +410,6 @@ function bestFirstSearch(mode) {
   }
 }
 
-function randomMove(gameState) {
-  console.error('moving randomly...');
-  const actions = getActions(new State(gameState));
-  return {
-      move: actions[Math.floor(Math.random() * actions.length)]
-  };
-}
-
 function getTimeout() {
   const startTime = new Date();
   return () => {
@@ -430,7 +422,7 @@ function manhattanDistance(a, b) {
   return Math.abs(b.x-a.x) + Math.abs(b.y-a.y);
 }
 
-function heuristicCost(node) {
+function foodHeuristicCost(node) {
   if (!heuristicCost.initial) { // get initial state
     heuristicCost.initial = node;
     while (heuristicCost.initial.parent) heuristicCost.initial = heuristicCost.initial.parent;
@@ -453,8 +445,20 @@ function heuristicCost(node) {
   return minDistance;
 }
 
+function tailHeuristicCost(node) {
+  const me = node.state.you;
+  return manhattanDistance(me.head, me.body[me.length-1]);
+}
+
 function aStarSearch(gameState) {
   const mode = gameState.you.health < 50 ? SEARCH_MODE.FOOD_GOAL : SEARCH_MODE.TAIL_GOAL;
+  let heuristicCost;
+  switch (mode) {
+    case SEARCH_MODE.FOOD_GOAL: heuristicCost = foodHeuristicCost; break;
+    // Could make snake roam more by using food heuristic all the time
+    case SEARCH_MODE.TAIL_GOAL: heuristicCost = tailHeuristicCost; break;
+    default: throw 'invalid search mode';
+  }
   const goal = bestFirstSearch(mode)(
     new State(gameState),
     (node) => node.pathCost + heuristicCost(node),
@@ -474,11 +478,19 @@ function aStarSearch(gameState) {
   return { move: node.action };
 }
 
+function randomMove(gameState) {
+  console.error('moving randomly...');
+  const actions = getActions(new State(gameState));
+  return {
+      move: actions[Math.floor(Math.random() * actions.length)]
+  };
+}
+
 module.exports = {
   State: State,
   Node: Node,
   MinHeap: MinHeap,
   bestFirstSearch: bestFirstSearch,
-  randomMove: randomMove,
-  aStarSearch: aStarSearch
+  aStarSearch: aStarSearch,
+  randomMove: randomMove
 }
