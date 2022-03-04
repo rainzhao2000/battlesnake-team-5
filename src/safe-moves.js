@@ -16,13 +16,14 @@ function isOtherHeadDownRight(otherHead, myHead) {
 
 function getSafeMoves(gameState) {
   if (!gameState.you) return [];
-  let possibleMoves = {
+  const possibleMoves = {
     up: true,
     down: true,
     left: true,
     right: true
   }
   const myHead = gameState.you.head;
+  const snakes = gameState.board.snakes;
 
   // Don't hit walls.
   if (myHead.y == gameState.board.height-1) possibleMoves.up = false;
@@ -31,42 +32,79 @@ function getSafeMoves(gameState) {
   if (myHead.x == gameState.board.width-1) possibleMoves.right = false;
 
   // Don't hit any snake's necks
-  possibleMoves.up = possibleMoves.up && gameState.board.snakes.every(
+  possibleMoves.up = possibleMoves.up && snakes.every(
     (snake) => !(snake.head.x == myHead.x && snake.head.y == myHead.y+1)
   );
-  possibleMoves.down = possibleMoves.down && gameState.board.snakes.every(
+  possibleMoves.down = possibleMoves.down && snakes.every(
     (snake) => !(snake.head.x == myHead.x && snake.head.y == myHead.y-1)
   );
-  possibleMoves.left = possibleMoves.left && gameState.board.snakes.every(
+  possibleMoves.left = possibleMoves.left && snakes.every(
     (snake) => !(snake.head.x == myHead.x-1 && snake.head.y == myHead.y)
   );
-  possibleMoves.right = possibleMoves.right && gameState.board.snakes.every(
+  possibleMoves.right = possibleMoves.right && snakes.every(
     (snake) => !(snake.head.x == myHead.x+1 && snake.head.y == myHead.y)
   );
 
   // Don't hit any snake bodies
-  possibleMoves.up = possibleMoves.up && gameState.board.snakes.every(
+  possibleMoves.up = possibleMoves.up && snakes.every(
     (snake) => snake.body.every(
       (segment) => !(segment.x == myHead.x && segment.y == myHead.y+1)
     )
   );
-  possibleMoves.down = possibleMoves.down && gameState.board.snakes.every(
+  possibleMoves.down = possibleMoves.down && snakes.every(
     (snake) => snake.body.every(
       (segment) => !(segment.x == myHead.x && segment.y == myHead.y-1)
     )
   );
-  possibleMoves.left = possibleMoves.left && gameState.board.snakes.every(
+  possibleMoves.left = possibleMoves.left && snakes.every(
     (snake) => snake.body.every(
       (segment) => !(segment.x == myHead.x-1 && segment.y == myHead.y)
     )
   );
-  possibleMoves.right = possibleMoves.right && gameState.board.snakes.every(
+  possibleMoves.right = possibleMoves.right && snakes.every(
     (snake) => snake.body.every(
       (segment) => !(segment.x == myHead.x+1 && segment.y == myHead.y)
     )
   );
 
-  return Object.keys(possibleMoves).filter(key => possibleMoves[key])
+  // Don't risk head-on unless necesssary
+  const isUpRisky = !possibleMoves.up || snakes.some(
+    (snake) => (snake.length >= gameState.you.length) && (
+      (snake.head.x == myHead.x && snake.head.y == myHead.y+2) ||
+      isOtherHeadUpLeft(snake.head, myHead) ||
+      isOtherHeadUpRight(snake.head, myHead)
+    )
+  );
+  const isDownRisky = !possibleMoves.down || snakes.some(
+    (snake) => (snake.length >= gameState.you.length) && (
+      (snake.head.x == myHead.x && snake.head.y == myHead.y-2) ||
+      isOtherHeadDownLeft(snake.head, myHead) ||
+      isOtherHeadDownRight(snake.head, myHead)
+    )
+  );
+  const isLeftRisky = !possibleMoves.left || snakes.some(
+    (snake) => (snake.length >= gameState.you.length) && (
+      (snake.head.x == myHead.x-2 && snake.head.y == myHead.y) ||
+      isOtherHeadUpLeft(snake.head, myHead) ||
+      isOtherHeadDownLeft(snake.head, myHead)
+    )
+  );
+  const isRightRisky = !possibleMoves.right || snakes.some(
+    (snake) => (snake.length >= gameState.you.length) && (
+      (snake.head.x == myHead.x+2 && snake.head.y == myHead.y) ||
+      isOtherHeadUpRight(snake.head, myHead) ||
+      isOtherHeadDownRight(snake.head, myHead)
+    )
+  );
+  const riskyMoves = {
+    up: isUpRisky,
+    down: isDownRisky,
+    left: isLeftRisky,
+    right: isRightRisky
+  };
+  const moves = Object.keys(possibleMoves);
+  const safeMoves = moves.filter((key) => possibleMoves[key] && !riskyMoves[key]);
+  return safeMoves.length ? safeMoves : moves.filter((key) => possibleMoves[key]);
 }
 
 module.exports = {

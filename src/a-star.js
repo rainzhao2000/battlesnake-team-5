@@ -243,38 +243,7 @@ function getResult(state, action) {
 }
 
 function getActionCost(state, action, newState) {
-  const myHead = newState.you.head;
-  const costIncrement = state.board.width * state.board.height;
-  let cost = 1;
-  if (newState.board.snakes.every(
-    (snake) => (newState.you.length > snake.length) || (
-      !(snake.head.x == myHead.x && snake.head.y == myHead.y+2) &&
-      !isOtherHeadUpLeft(snake.head, myHead) &&
-      !isOtherHeadUpRight(snake.head, myHead)
-    )
-  )) cost += costIncrement;
-  if (newState.board.snakes.every(
-    (snake) => (newState.you.length > snake.length) || (
-      !(snake.head.x == myHead.x && snake.head.y == myHead.y-2) &&
-      !isOtherHeadDownLeft(snake.head, myHead) &&
-      !isOtherHeadDownRight(snake.head, myHead)
-    )
-  )) cost += costIncrement;
-  if (newState.board.snakes.every(
-    (snake) => (newState.you.length > snake.length) || (
-      !(snake.head.x == myHead.x-2 && snake.head.y == myHead.y) &&
-      !isOtherHeadUpLeft(snake.head, myHead) &&
-      !isOtherHeadDownLeft(snake.head, myHead)
-    )
-  )) cost += costIncrement;
-  if (newState.board.snakes.every(
-    (snake) => (newState.you.length > snake.length) || (
-      !(snake.head.x == myHead.x+2 && snake.head.y == myHead.y) &&
-      !isOtherHeadUpRight(snake.head, myHead) &&
-      !isOtherHeadDownRight(snake.head, myHead)
-    )
-  )) cost += costIncrement;
-  return cost;
+  return 1;
 }
 
 function isFoodGoal(node) {
@@ -285,10 +254,11 @@ function isFoodGoal(node) {
   ) && hasEscape(node);
 }
 
-function isCenterGoal(node) {
-  const { width, height } = node.state.board;
-  const { x, y } = node.state.you.head;
-  return width/3 < x && x <= width*2/3 && height/3 < y && y <= height*2/3;
+function isTailGoal(node) {
+  const me = node.state.you;
+  const dx = me.body[me.length-1].x - me.head.x;
+  const dy = me.body[me.length-1].y - me.head.y;
+  return Math.abs(dx) + Math.abs(dy) == 1;
 }
 
 class MinHeap {
@@ -385,6 +355,11 @@ class MinHeap {
   }
 }
 
+const SEARCH_MODE = {
+  FOOD_GOAL: 0,
+  TAIL_GOAL: 1
+}
+
 function expand(node) {
   const s = node.state;
   return getActions(s).map((action) => {
@@ -399,35 +374,40 @@ function expand(node) {
   }).filter((node) => node != null);
 }
 
-function bestFirstSearch(state, evalFn, aboutToTimeout) {
-  // const isHungry = state.you.health < 50;
-  let node = new Node(state, null, null, 0);
-  const frontier = new MinHeap(evalFn, node);
-  const reached = new Map();
-  reached.set(state, node);
-  let numSearched = 0;
-  while (!frontier.isEmpty()) {
-    node = frontier.pop();
-    // printSearchPath(node);
-    if (aboutToTimeout()) {
-      console.error(`search timeout | searched ${numSearched} states`);
-      return node;
-    }
-    numSearched += 1;
-    const children = expand(node);
-    if (children.length == 0) continue; // dead end
-    // if (isHungry) {
-      if (isFoodGoal(node)) return node;
-    // } else if (isCenterGoal(node)) return node;
-    for (const child of children) {
-      const s = child.state;
-      if (!reached.has(s) || child.pathCost < reached.get(s).pathCost) {
-        reached.set(s, child);
-        frontier.insert(child);
+function bestFirstSearch(mode) {
+  let isGoal;
+  switch (mode) {
+    case SEARCH_MODE.FOOD_GOAL: isGoal = isFoodGoal; break;
+    case SEARCH_MODE.TAIL_GOAL: isGoal = isTailGoal; break;
+    default: throw 'invalid goal';
+  }
+  return (state, evalFn, aboutToTimeout) => {
+    let node = new Node(state, null, null, 0);
+    const frontier = new MinHeap(evalFn, node);
+    const reached = new Map();
+    reached.set(state, node);
+    let numSearched = 0;
+    while (!frontier.isEmpty()) {
+      node = frontier.pop();
+      // printSearchPath(node);
+      if (aboutToTimeout()) {
+        console.error(`search timeout | searched ${numSearched} states`);
+        return node;
+      }
+      numSearched += 1;
+      const children = expand(node);
+      if (children.length == 0) continue; // dead end
+      if (isGoal(node)) return node;
+      for (const child of children) {
+        const s = child.state;
+        if (!reached.has(s) || child.pathCost < reached.get(s).pathCost) {
+          reached.set(s, child);
+          frontier.insert(child);
+        }
       }
     }
+    throw `no solution | searched ${numSearched} states`;
   }
-  throw `no solution | searched ${numSearched} states`;
 }
 
 function randomMove(gameState) {
@@ -451,20 +431,20 @@ function manhattanDistance(a, b) {
 }
 
 function heuristicCost(node) {
-  // manhattan distance to nearest food from initial state
-  let initial = node;
-  while (initial.parent) initial = initial.parent;
-  const maxDistance = initial.state.board.width + initial.state.board.height;
+  if (!heuristicCost.initial) { // get initial state
+    heuristicCost.initial = node;
+    while (heuristicCost.initial.parent) heuristicCost.initial = heuristicCost.initial.parent;
+  }
   if (heuristicCost.nearestFood &&
     node.state.board.food.some(
       (foo) => foo.x == heuristicCost.nearestFood.x && foo.y == heuristicCost.nearestFood.y
     )
   ) { // if cached nearest food still exists
-    return manhattanDistance(initial.state.you.head, heuristicCost.nearestFood);
+    return manhattanDistance(heuristicCost.initial.state.you.head, heuristicCost.nearestFood);
   }
-  let minDistance = maxDistance;
+  let minDistance = heuristicCost.initial.state.board.width + heuristicCost.initial.state.board.height;
   for (const foo of node.state.board.food) {
-    const d = manhattanDistance(initial.state.you.head, foo);
+    const d = manhattanDistance(heuristicCost.initial.state.you.head, foo);
     if (d < minDistance) {
       minDistance = d;
       heuristicCost.nearestFood = foo;
@@ -474,9 +454,12 @@ function heuristicCost(node) {
 }
 
 function aStarSearch(gameState) {
-  const goal = bestFirstSearch(new State(gameState), (node) => {
-    return node.pathCost + heuristicCost(node);
-  }, getTimeout());
+  const mode = gameState.you.health < 50 ? SEARCH_MODE.FOOD_GOAL : SEARCH_MODE.TAIL_GOAL;
+  const goal = bestFirstSearch(mode)(
+    new State(gameState),
+    (node) => node.pathCost + heuristicCost(node),
+    getTimeout()
+  );
   // backtrack from goal to find the action taken
   // const pathToGoal = [goal.state]; // for debugging
   let node = goal;
