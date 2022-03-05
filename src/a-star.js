@@ -238,10 +238,10 @@ function getResult(state, action) {
       }
     }
   }
-  const you = structuredClone(newBoard.snakes.find((snake) => snake.id == state.you.id));
-  if (!you) throw 'simulated death';
   // kill snakes marked for death
   newBoard.snakes = newBoard.snakes.filter((snake) => !snake.markedForDeath);
+  const you = structuredClone(newBoard.snakes.find((snake) => snake.id == state.you.id));
+  if (!you) throw 'simulated death';
   return new State({ board: newBoard, you });
 }
 
