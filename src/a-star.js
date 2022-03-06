@@ -428,15 +428,19 @@ function manhattanDistance(a, b) {
   return Math.abs(b.x-a.x) + Math.abs(b.y-a.y);
 }
 
-function foodHeuristicCost(node) {
-  let minDistance = node.state.board.width + node.state.board.height;
-  for (const foo of node.state.board.food) {
-    const d = manhattanDistance(node.state.you.head, foo);
-    if (d < minDistance) {
-      minDistance = d;
+function setupFoodHeuristicCost() {
+  let nearestFood;
+  return (node) => {
+    if (nearestFood) return manhattanDistance(node.state.you.head, nearestFood);
+    let minDistance = node.state.board.width + node.state.board.height;
+    for (const foo of node.state.board.food) {
+      const d = manhattanDistance(node.state.you.head, foo);
+      if (d < minDistance) {
+        nearestFood = foo;
+        minDistance = d;
+      }
     }
   }
-  return minDistance;
 }
 
 function tailHeuristicCost(node) {
@@ -450,7 +454,7 @@ function aStarSearch(gameState) {
   if (gameState.you.health < 70) {
     console.error('hungry');
     isGoal = isFoodGoal;
-    heuristicCost = foodHeuristicCost;
+    heuristicCost = setupFoodHeuristicCost();
   } else {
     console.error('full');
     isGoal = isTailGoal;
