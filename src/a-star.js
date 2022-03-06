@@ -197,6 +197,11 @@ function getResult(state, action) {
       else if (isMovingRight(snake)) newSnake.head.x += 1;
       else throw ['fuc> ', snake.head, snake.body];
     }
+    // remove last body segment
+    if (!newSnake.consumedFood) newSnake.body.pop();
+    else newSnake.consumedFood = false; // reset consumedFood
+    // add new body segment where head is
+    newSnake.body.unshift(structuredClone(newSnake.head));
     // check if food was eaten
     const ateFood = newBoard.food.find((foo) => foo.x == newSnake.head.x && foo.y == newSnake.head.y);
     if (ateFood) {
@@ -204,17 +209,14 @@ function getResult(state, action) {
       ateFood.consumed = true;
       newSnake.length += 1;
       newSnake.health = 100;
+      newSnake.consumedFood = true;
     } else {
-      // remove last body segment
-      newSnake.body.pop();
       newSnake.health -= 1;
       if (newSnake.health == 0) {
         newSnake.markedForDeath = true;
         continue;
       }
     }
-    // add new body segment where head is
-    newSnake.body.unshift(structuredClone(newSnake.head));
   }
   // handle snake collisions
   for (const otherSnake of newBoard.snakes) {
@@ -275,9 +277,9 @@ function isFoodGoal(node) {
 
 function isTailGoal(node) {
   const me = node.state.you;
-  const dx = me.body[me.length-1].x - me.head.x;
-  const dy = me.body[me.length-1].y - me.head.y;
-  const tolerance = me.length % 2 == 0 ? 1 : 2;
+  const dx = me.body[me.body.length-1].x - me.head.x;
+  const dy = me.body[me.body.length-1].y - me.head.y;
+  const tolerance = me.body.length % 2 == 0 ? 1 : 2;
   return Math.abs(dx) + Math.abs(dy) <= tolerance;
 }
 
@@ -449,7 +451,7 @@ function setupFoodHeuristicCost() {
 
 function tailHeuristicCost(node) {
   const me = node.state.you;
-  return manhattanDistance(me.head, me.body[me.length-1]);
+  return manhattanDistance(me.head, me.body[me.body.length-1]);
 }
 
 function aStarSearch(gameState) {
@@ -464,7 +466,7 @@ function aStarSearch(gameState) {
     isGoal = isTailGoal;
     heuristicCost = tailHeuristicCost;
   }
-  const aboutToTimeout = getTimeout(400);
+  const aboutToTimeout = getTimeout(100);
   const goal = bestFirstSearch(
     new State(gameState),
     isGoal,
@@ -504,6 +506,7 @@ function defaultMove(gameState) {
 module.exports = {
   State,
   Node,
+  // printState,
   MinHeap,
   bestFirstSearch,
   aStarSearch,
