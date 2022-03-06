@@ -420,11 +420,11 @@ function bestFirstSearch(state, isGoal, evalFn, aboutToTimeout) {
   throw `no solution | searched ${numSearched} states`;
 }
 
-function getTimeout() {
+function getTimeout(tolerance) {
   const startTime = new Date();
   return () => {
     const currentTime = new Date();
-    return currentTime-startTime > 400;
+    return currentTime-startTime > tolerance;
   }
 }
 
@@ -464,11 +464,12 @@ function aStarSearch(gameState) {
     isGoal = isTailGoal;
     heuristicCost = tailHeuristicCost;
   }
+  const aboutToTimeout = getTimeout(400);
   const goal = bestFirstSearch(
     new State(gameState),
     isGoal,
     (node) => /*node.pathCost + */heuristicCost(node),
-    getTimeout()
+    aboutToTimeout
   );
   // backtrack from goal to find the action taken
   // const pathToGoal = [goal.state]; // for debugging

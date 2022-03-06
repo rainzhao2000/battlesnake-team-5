@@ -1,3 +1,68 @@
+class Position {
+  x;
+  y;
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+  }
+}
+
+function performMove(pos, move) {
+  let newPos = new Position(pos.x, pos.y)
+  switch(move) {
+    case 'up': newPos.y += 1; break;
+    case 'down': newPos.y -= 1; break;
+    case 'left': newPos.x -= 1; break;
+    case 'right': newPos.x += 1; break;
+  }
+  return newPos;
+}
+
+function expandPosition(pos){
+return [
+  new Position(pos.x, pos.y + 1),
+  new Position(pos.x, pos.y -1),
+  new Position(pos.x + 1, pos.y),
+  new Position(pos.x - 1, pos.y),
+]
+}
+
+function getAreaOfFreedom(state, move) {
+  // console.log('move', move)
+  const headPos = new Position(state.you.head.x, state.you.head.y);
+  // console.log('headNode', headNode)
+  let initial = performMove(headPos, move);
+  // console.log('initial', initial)
+  const frontier = [initial];
+  let area = 0;
+  const reached = new Set();
+  reached.add(JSON.stringify(initial));
+  while (frontier.length) {
+    // console.log(reached, area)
+    let pos = frontier.pop();
+    // console.log(pos)
+    if (0 <= pos.x && pos.x < state.board.width && 0 <= pos.y && pos.y < state.board.height) {
+      // console.log('within board boundary')
+    }
+    if (0 <= pos.x && pos.x < state.board.width && 0 <= pos.y && pos.y < state.board.height
+      && state.board.snakes.every(
+        (snake) => snake.body.every((segment) => {
+          return !(segment.x == pos.x && segment.y == pos.y);
+        } )
+    )) {
+      area += 1;
+      for (const child of expandPosition(pos)) {
+        let key = JSON.stringify(child);
+        if (!reached.has(key)) {
+          reached.add(key);
+          frontier.push(child);
+        }
+      }
+    }
+  }
+  return area;
+}
+
 function isUp(segment, myHead) {
   return segment.x == myHead.x && segment.y == myHead.y+1;
 }
@@ -102,28 +167,28 @@ function getSafeMoves(gameState) {
       isOtherHeadUpLeft(snake.head, myHead) ||
       isOtherHeadUpRight(snake.head, myHead)
     )
-  );
+  ) || getAreaOfFreedom(gameState, 'up') < gameState.you.length;
   const isDownRisky = !possibleMoves.down || snakes.some(
     (snake) => (snake.length >= gameState.you.length) && (
       (snake.head.x == myHead.x && snake.head.y == myHead.y-2) ||
       isOtherHeadDownLeft(snake.head, myHead) ||
       isOtherHeadDownRight(snake.head, myHead)
     )
-  );
+  ) || getAreaOfFreedom(gameState, 'down') < gameState.you.length;
   const isLeftRisky = !possibleMoves.left || snakes.some(
     (snake) => (snake.length >= gameState.you.length) && (
       (snake.head.x == myHead.x-2 && snake.head.y == myHead.y) ||
       isOtherHeadUpLeft(snake.head, myHead) ||
       isOtherHeadDownLeft(snake.head, myHead)
     )
-  );
+  ) || getAreaOfFreedom(gameState, 'left') < gameState.you.length;
   const isRightRisky = !possibleMoves.right || snakes.some(
     (snake) => (snake.length >= gameState.you.length) && (
       (snake.head.x == myHead.x+2 && snake.head.y == myHead.y) ||
       isOtherHeadUpRight(snake.head, myHead) ||
       isOtherHeadDownRight(snake.head, myHead)
     )
-  );
+  ) || getAreaOfFreedom(gameState, 'right') < gameState.you.length;
   const riskyMoves = {
     up: isUpRisky,
     down: isDownRisky,
