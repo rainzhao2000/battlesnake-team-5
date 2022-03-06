@@ -393,7 +393,7 @@ function bestFirstSearch(state, isGoal, evalFn, aboutToTimeout) {
   let node = new Node(state, null, null, 0);
   const frontier = new MinHeap(evalFn, node);
   const reached = new Map();
-  reached.set(state, node);
+  reached.set(JSON.stringify(state), node);
   let numSearched = 0;
   while (!frontier.isEmpty()) {
     node = frontier.pop();
@@ -410,7 +410,7 @@ function bestFirstSearch(state, isGoal, evalFn, aboutToTimeout) {
       return node;
     }
     for (const child of children) {
-      const s = child.state;
+      const s = JSON.stringify(child.state);
       if (!reached.has(s) || child.pathCost < reached.get(s).pathCost) {
         reached.set(s, child);
         frontier.insert(child);
