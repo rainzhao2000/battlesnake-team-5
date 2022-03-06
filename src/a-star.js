@@ -140,10 +140,13 @@ function printSearchPath(node) {
   while (initial.parent) initial = initial.parent;
   const grid = getOutputGrid(initial.state);
   let curr = node;
+  let count = 0;
+  const colors = [COLORS.BgBlue, COLORS.BgWhite, COLORS.BgCyan];
   while (curr.parent) {
     const row = grid[node.state.board.height-1-curr.state.you.head.y];
-    row[curr.state.you.head.x] = `${COLORS.BgBlue}${row[curr.state.you.head.x]}`;
+    row[curr.state.you.head.x] = `${colors[count%3]}${row[curr.state.you.head.x]}`;
     curr = curr.parent;
+    count += 1;
   }
   printGrid(grid);
 }
@@ -238,10 +241,10 @@ function getResult(state, action) {
       }
     }
   }
-  const you = structuredClone(newBoard.snakes.find((snake) => snake.id == state.you.id));
-  if (!you) throw 'simulated death';
   // kill snakes marked for death
   newBoard.snakes = newBoard.snakes.filter((snake) => !snake.markedForDeath);
+  const you = structuredClone(newBoard.snakes.find((snake) => snake.id == state.you.id));
+  if (!you) throw 'simulated death';
   return new State({ board: newBoard, you });
 }
 
@@ -274,7 +277,8 @@ function isTailGoal(node) {
   const me = node.state.you;
   const dx = me.body[me.length-1].x - me.head.x;
   const dy = me.body[me.length-1].y - me.head.y;
-  return Math.abs(dx) + Math.abs(dy) == 1;
+  const tolerance = me.length % 2 == 0 ? 1 : 2;
+  return Math.abs(dx) + Math.abs(dy) <= tolerance;
 }
 
 class MinHeap {
@@ -371,11 +375,6 @@ class MinHeap {
   }
 }
 
-const SEARCH_MODE = {
-  FOOD_GOAL: 0,
-  TAIL_GOAL: 1
-}
-
 function expand(node) {
   const s = node.state;
   return getActions(s).map((action) => {
@@ -390,40 +389,35 @@ function expand(node) {
   }).filter((node) => node != null);
 }
 
-function bestFirstSearch(mode) {
-  let isGoal;
-  switch (mode) {
-    case SEARCH_MODE.FOOD_GOAL: isGoal = isFoodGoal; break;
-    case SEARCH_MODE.TAIL_GOAL: isGoal = isTailGoal; break;
-    default: throw 'invalid search mode';
-  }
-  return (state, evalFn, aboutToTimeout) => {
-    let node = new Node(state, null, null, 0);
-    const frontier = new MinHeap(evalFn, node);
-    const reached = new Map();
-    reached.set(state, node);
-    let numSearched = 0;
-    while (!frontier.isEmpty()) {
-      node = frontier.pop();
-      // printSearchPath(node);
-      if (aboutToTimeout()) {
-        console.error(`search timeout | searched ${numSearched} states`);
-        return node;
-      }
-      numSearched += 1;
-      const children = expand(node);
-      if (children.length == 0) continue; // dead end
-      if (isGoal(node)) return node;
-      for (const child of children) {
-        const s = child.state;
-        if (!reached.has(s) || child.pathCost < reached.get(s).pathCost) {
-          reached.set(s, child);
-          frontier.insert(child);
-        }
+function bestFirstSearch(state, isGoal, evalFn, aboutToTimeout) {
+  let node = new Node(state, null, null, 0);
+  const frontier = new MinHeap(evalFn, node);
+  const reached = new Map();
+  reached.set(JSON.stringify(state), node);
+  let numSearched = 0;
+  while (!frontier.isEmpty()) {
+    node = frontier.pop();
+    // printSearchPath(node);
+    if (aboutToTimeout()) {
+      console.error(`search timeout | searched ${numSearched} states`);
+      return node;
+    }
+    numSearched += 1;
+    const children = expand(node);
+    if (children.length == 0) continue; // dead end
+    if (isGoal(node)) {
+      console.error(`found goal | searched ${numSearched} states`);
+      return node;
+    }
+    for (const child of children) {
+      const s = JSON.stringify(child.state);
+      if (!reached.has(s) || child.pathCost < reached.get(s).pathCost) {
+        reached.set(s, child);
+        frontier.insert(child);
       }
     }
-    throw `no solution | searched ${numSearched} states`;
   }
+  throw `no solution | searched ${numSearched} states`;
 }
 
 function getTimeout() {
@@ -438,27 +432,19 @@ function manhattanDistance(a, b) {
   return Math.abs(b.x-a.x) + Math.abs(b.y-a.y);
 }
 
-function foodHeuristicCost(node) {
-  if (!foodHeuristicCost.initial) { // get initial state
-    foodHeuristicCost.initial = node;
-    while (foodHeuristicCost.initial.parent) foodHeuristicCost.initial = foodHeuristicCost.initial.parent;
-  }
-  if (foodHeuristicCost.nearestFood &&
-    node.state.board.food.some(
-      (foo) => foo.x == foodHeuristicCost.nearestFood.x && foo.y == foodHeuristicCost.nearestFood.y
-    )
-  ) { // if cached nearest food still exists
-    return manhattanDistance(foodHeuristicCost.initial.state.you.head, foodHeuristicCost.nearestFood);
-  }
-  let minDistance = foodHeuristicCost.initial.state.board.width + foodHeuristicCost.initial.state.board.height;
-  for (const foo of node.state.board.food) {
-    const d = manhattanDistance(foodHeuristicCost.initial.state.you.head, foo);
-    if (d < minDistance) {
-      minDistance = d;
-      foodHeuristicCost.nearestFood = foo;
+function setupFoodHeuristicCost() {
+  let nearestFood;
+  return (node) => {
+    if (nearestFood) return manhattanDistance(node.state.you.head, nearestFood);
+    let minDistance = node.state.board.width + node.state.board.height;
+    for (const foo of node.state.board.food) {
+      const d = manhattanDistance(node.state.you.head, foo);
+      if (d < minDistance) {
+        nearestFood = foo;
+        minDistance = d;
+      }
     }
   }
-  return minDistance;
 }
 
 function tailHeuristicCost(node) {
@@ -467,16 +453,20 @@ function tailHeuristicCost(node) {
 }
 
 function aStarSearch(gameState) {
-  const mode = gameState.you.health < 70 ? SEARCH_MODE.FOOD_GOAL : SEARCH_MODE.TAIL_GOAL;
+  let isGoal;
   let heuristicCost;
-  switch (mode) {
-    case SEARCH_MODE.FOOD_GOAL: heuristicCost = foodHeuristicCost; break;
-    // using food heuristic all the time could be interesting
-    case SEARCH_MODE.TAIL_GOAL: heuristicCost = tailHeuristicCost; break;
-    default: throw 'invalid search mode';
+  if (gameState.you.health < 70) {
+    console.error('hungry');
+    isGoal = isFoodGoal;
+    heuristicCost = setupFoodHeuristicCost();
+  } else {
+    console.error('full');
+    isGoal = isTailGoal;
+    heuristicCost = tailHeuristicCost;
   }
-  const goal = bestFirstSearch(mode)(
+  const goal = bestFirstSearch(
     new State(gameState),
+    isGoal,
     (node) => /*node.pathCost + */heuristicCost(node),
     getTimeout()
   );
