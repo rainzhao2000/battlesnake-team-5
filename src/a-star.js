@@ -277,7 +277,8 @@ function isTailGoal(node) {
   const me = node.state.you;
   const dx = me.body[me.length-1].x - me.head.x;
   const dy = me.body[me.length-1].y - me.head.y;
-  return Math.abs(dx) + Math.abs(dy) == 1;
+  const tolerance = me.length % 2 == 0 ? 1 : 2;
+  return Math.abs(dx) + Math.abs(dy) <= tolerance;
 }
 
 class MinHeap {
@@ -404,7 +405,10 @@ function bestFirstSearch(state, isGoal, evalFn, aboutToTimeout) {
     numSearched += 1;
     const children = expand(node);
     if (children.length == 0) continue; // dead end
-    if (isGoal(node)) return node;
+    if (isGoal(node)) {
+      console.error(`found goal | searched ${numSearched} states`);
+      return node;
+    }
     for (const child of children) {
       const s = child.state;
       if (!reached.has(s) || child.pathCost < reached.get(s).pathCost) {
