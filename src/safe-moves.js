@@ -58,9 +58,9 @@ function isSnakeNearFood(snake, food, radius) {
   return food.some((foo) => manhattanDistance(snake.head, foo) <= radius);
 }
 
-function isNearOtherHead(pos, state, radius) {
+function isNearOtherDangerousHead(pos, state, radius) {
   return state.board.snakes.some(
-    (snake) => snake.id != state.you.id && manhattanDistance(pos, snake.head) <= radius
+    (snake) => snake.id != state.you.id && snake.length >= state.you.length && manhattanDistance(pos, snake.head) <= radius
   );
 }
 
@@ -73,7 +73,7 @@ function getAreaAtPos(pos, state) {
       if (snake.body[index].x == pos.x && snake.body[index].y == pos.y) {
         if (index == snake.body.length-1 &&
           !isSnakeNearFood(snake, state.board.food, 2) &&
-          !isNearOtherHead(pos, state, 2)
+          !isNearOtherDangerousHead(pos, state, 2)
         ) {
           return snake.body.length;
         }
@@ -130,18 +130,15 @@ function getAreaOfFreedom(state, move) {
   return area;
 }
 
-function getSafeMoves(gameState) {
-  if (!gameState.you) return [];
+function getBasicSafeMoves(snakeId, board) {
+  const myHead = board.snakes.find((snake) => snake.id == snakeId).head;
+  const snakes = board.snakes;
   const possibleMoves = new MovesObject(true, true, true, true);
-  const moves = Object.keys(possibleMoves);
-  const myHead = gameState.you.head;
-  const snakes = gameState.board.snakes;
-  /*
   // Don't hit walls.
-  if (myHead.y == gameState.board.height-1) possibleMoves.up = false;
+  if (myHead.y == board.height-1) possibleMoves.up = false;
   if (myHead.y == 0) possibleMoves.down = false;
   if (myHead.x == 0) possibleMoves.left = false;
-  if (myHead.x == gameState.board.width-1) possibleMoves.right = false;
+  if (myHead.x == board.width-1) possibleMoves.right = false;
 
   // Don't hit any snake's necks
   possibleMoves.up = possibleMoves.up && snakes.every(
@@ -160,29 +157,37 @@ function getSafeMoves(gameState) {
   // Don't hit any snake bodies except tails
   possibleMoves.up = possibleMoves.up && snakes.every(
     (snake) => snake.body.every(
-      (segment, i) => (i == snake.body.length-1 && isUp(segment, myHead) && !isSnakeNearFood(snake, gameState.board.food)) ||
+      (segment, i) => (i == snake.body.length-1 && isUp(segment, myHead) && !isSnakeNearFood(snake, board.food)) ||
         !isUp(segment, myHead)
     )
   );
   possibleMoves.down = possibleMoves.down && snakes.every(
     (snake) => snake.body.every(
-      (segment, i) => (i == snake.body.length-1 && isDown(segment, myHead) && !isSnakeNearFood(snake, gameState.board.food)) ||
+      (segment, i) => (i == snake.body.length-1 && isDown(segment, myHead) && !isSnakeNearFood(snake, board.food)) ||
         !isDown(segment, myHead)
     )
   );
   possibleMoves.left = possibleMoves.left && snakes.every(
     (snake) => snake.body.every(
-      (segment, i) => (i == snake.body.length-1 && isLeft(segment, myHead) && !isSnakeNearFood(snake, gameState.board.food)) ||
+      (segment, i) => (i == snake.body.length-1 && isLeft(segment, myHead) && !isSnakeNearFood(snake, board.food)) ||
         !isLeft(segment, myHead)
     )
   );
   possibleMoves.right = possibleMoves.right && snakes.every(
     (snake) => snake.body.every(
-      (segment, i) => (i == snake.body.length-1 && isRight(segment, myHead) && !isSnakeNearFood(snake, gameState.board.food)) ||
+      (segment, i) => (i == snake.body.length-1 && isRight(segment, myHead) && !isSnakeNearFood(snake, board.food)) ||
         !isRight(segment, myHead)
     )
   );
-  */
+  return Object.keys(possibleMoves).filter((move) => possibleMoves[move]);
+}
+
+function getSafeMoves(gameState) {
+  if (!gameState.you) return [];
+  const possibleMoves = new MovesObject(true, true, true, true);
+  const moves = Object.keys(possibleMoves);
+  const myHead = gameState.you.head;
+  const snakes = gameState.board.snakes;
   const area = new MovesObject(-1, -1, -1, -1);
   for (const move of moves) {
     area[move] = getAreaOfFreedom(gameState, move);
@@ -196,35 +201,39 @@ function getSafeMoves(gameState) {
       isOtherHeadUpLeft(snake.head, myHead) ||
       isOtherHeadUpRight(snake.head, myHead)
     )
-  ) || area.up < gameState.you.body.length;
+  ) || area.up < gameState.you.body.length/2;
   const isDownRisky = !possibleMoves.down || snakes.some(
     (snake) => (snake.length >= gameState.you.length) && (
       (snake.head.x == myHead.x && snake.head.y == myHead.y-2) ||
       isOtherHeadDownLeft(snake.head, myHead) ||
       isOtherHeadDownRight(snake.head, myHead)
     )
-  ) || area.down < gameState.you.body.length;
+  ) || area.down < gameState.you.body.length/2;
   const isLeftRisky = !possibleMoves.left || snakes.some(
     (snake) => (snake.length >= gameState.you.length) && (
       (snake.head.x == myHead.x-2 && snake.head.y == myHead.y) ||
       isOtherHeadUpLeft(snake.head, myHead) ||
       isOtherHeadDownLeft(snake.head, myHead)
     )
-  ) || area.left < gameState.you.body.length;
+  ) || area.left < gameState.you.body.length/2;
   const isRightRisky = !possibleMoves.right || snakes.some(
     (snake) => (snake.length >= gameState.you.length) && (
       (snake.head.x == myHead.x+2 && snake.head.y == myHead.y) ||
       isOtherHeadUpRight(snake.head, myHead) ||
       isOtherHeadDownRight(snake.head, myHead)
     )
-  ) || area.right < gameState.you.body.length;
+  ) || area.right < gameState.you.body.length/2;
   const riskyMoves = new MovesObject(isUpRisky, isDownRisky, isLeftRisky, isRightRisky);
   const safeMoves = moves.filter((key) => possibleMoves[key] && !riskyMoves[key]);
   // console.error('safeMoves', safeMoves);
-  return safeMoves.length ? safeMoves : moves.filter((key) => possibleMoves[key]);
+  return {
+    safeMoves: safeMoves.length ? safeMoves : moves.filter((key) => possibleMoves[key]),
+    area
+  };
 }
 
 module.exports = {
   manhattanDistance,
+  getBasicSafeMoves,
   getSafeMoves
 }
