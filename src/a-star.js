@@ -1,6 +1,6 @@
 // reference: Chapter 3 of Russell, S. J., Norvig, P., & Chang, M.-W. (2021). Artificial Intelligence: A modern approach. Pearson.
 
-const { getSafeMoves } = require('./safe-moves');
+const { manhattanDistance, getSafeMoves } = require('./safe-moves');
 const v8 = require('v8');
 
 const structuredClone = obj => {
@@ -428,10 +428,6 @@ function getTimeout(tolerance) {
     const currentTime = new Date();
     return currentTime-startTime > tolerance;
   }
-}
-
-function manhattanDistance(a, b) {
-  return Math.abs(b.x-a.x) + Math.abs(b.y-a.y);
 }
 
 function setupFoodHeuristicCost() {
