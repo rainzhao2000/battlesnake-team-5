@@ -138,9 +138,9 @@ function getActionCost(state, action, newState) {
 }
 
 function hasEscape(node) {
-  const { safeMoves, area } = getSafeMoves(node.state);
-  const canEscape = safeMoves.length && safeMoves.some((move) => !canAreaTrapSnake(area[move], node.state.you));
-  console.log(node.state.you.head, 'escape:', canEscape, safeMoves, area);
+  const { idealMoves, area } = getSafeMoves(node.state);
+  const canEscape = idealMoves.length > 0;
+  console.error(node.state.you.head, 'escape:', canEscape, safeMoves, area);
   return canEscape;
 }
 
@@ -260,6 +260,7 @@ function expand(node) {
     try {
       newS = getResult(s, action);
     } catch (err) {
+      console.error(err);
       return null;
     }
     const cost = node.pathCost + getActionCost(s, action, newS);

@@ -231,10 +231,10 @@ function getSafeMoves(gameState) {
     )
   ) || canAreaTrapSnake(area.right, gameState.you);
   const riskyMoves = new MovesObject(isUpRisky, isDownRisky, isLeftRisky, isRightRisky);
-  const safeMoves = moves.filter((key) => possibleMoves[key] && !riskyMoves[key]);
-  // console.error('safeMoves', safeMoves);
+  const idealMoves = moves.filter((key) => possibleMoves[key] && !riskyMoves[key]);
   return {
-    safeMoves: safeMoves.length ? safeMoves : moves.filter((key) => possibleMoves[key]),
+    idealMoves,
+    safeMoves: idealMoves.length ? idealMoves : moves.filter((key) => possibleMoves[key]),
     area
   };
 }

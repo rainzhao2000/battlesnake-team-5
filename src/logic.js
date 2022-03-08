@@ -23,7 +23,9 @@ function end(gameState) {
 function move(pool, gameState) {
   return new Promise((resolve) => {
     if (gameState.turn < 1) {
-      resolve(defaultMove(gameState));
+      const response = defaultMove(gameState);
+      console.error(`${gameState.game.id} MOVE ${gameState.turn}: ${response.move}`);
+      resolve(response);
       return;
     }
     pool.runTask({ gameState }, (err, result) => {
