@@ -50,6 +50,10 @@ function isOtherHeadDownRight(otherHead, myHead) {
   return otherHead.x == myHead.x+1 && otherHead.y == myHead.y-1;
 }
 
+function isPosWithinBounds(pos, board) {
+  return 0 <= pos.x && pos.x < board.width && 0 <= pos.y && pos.y < board.height;
+}
+
 function manhattanDistance(a, b) {
   return Math.abs(b.x-a.x) + Math.abs(b.y-a.y);
 }
@@ -65,7 +69,7 @@ function isNearOtherDangerousHead(pos, state, radius) {
 }
 
 function getAreaAtPos(pos, state) {
-  if (!(0 <= pos.x && pos.x < state.board.width && 0 <= pos.y && pos.y < state.board.height)) {
+  if (!isPosWithinBounds(pos, state.board)) {
     return 0;
   }
   for (const snake of state.board.snakes) {
@@ -182,6 +186,10 @@ function getBasicSafeMoves(snakeId, board) {
   return Object.keys(possibleMoves).filter((move) => possibleMoves[move]);
 }
 
+function canAreaTrapSnake(area, snake) {
+  return area < snake.length * 2/3;
+}
+
 function getSafeMoves(gameState) {
   if (!gameState.you) return [];
   const possibleMoves = new MovesObject(true, true, true, true);
@@ -201,28 +209,28 @@ function getSafeMoves(gameState) {
       isOtherHeadUpLeft(snake.head, myHead) ||
       isOtherHeadUpRight(snake.head, myHead)
     )
-  ) || area.up < gameState.you.body.length/2;
+  ) || canAreaTrapSnake(area.up, gameState.you);
   const isDownRisky = !possibleMoves.down || snakes.some(
     (snake) => (snake.length >= gameState.you.length) && (
       (snake.head.x == myHead.x && snake.head.y == myHead.y-2) ||
       isOtherHeadDownLeft(snake.head, myHead) ||
       isOtherHeadDownRight(snake.head, myHead)
     )
-  ) || area.down < gameState.you.body.length/2;
+  ) || canAreaTrapSnake(area.down, gameState.you);
   const isLeftRisky = !possibleMoves.left || snakes.some(
     (snake) => (snake.length >= gameState.you.length) && (
       (snake.head.x == myHead.x-2 && snake.head.y == myHead.y) ||
       isOtherHeadUpLeft(snake.head, myHead) ||
       isOtherHeadDownLeft(snake.head, myHead)
     )
-  ) || area.left < gameState.you.body.length/2;
+  ) || canAreaTrapSnake(area.left, gameState.you);
   const isRightRisky = !possibleMoves.right || snakes.some(
     (snake) => (snake.length >= gameState.you.length) && (
       (snake.head.x == myHead.x+2 && snake.head.y == myHead.y) ||
       isOtherHeadUpRight(snake.head, myHead) ||
       isOtherHeadDownRight(snake.head, myHead)
     )
-  ) || area.right < gameState.you.body.length/2;
+  ) || canAreaTrapSnake(area.right, gameState.you);
   const riskyMoves = new MovesObject(isUpRisky, isDownRisky, isLeftRisky, isRightRisky);
   const safeMoves = moves.filter((key) => possibleMoves[key] && !riskyMoves[key]);
   // console.error('safeMoves', safeMoves);
@@ -233,7 +241,9 @@ function getSafeMoves(gameState) {
 }
 
 module.exports = {
+  isPosWithinBounds,
   manhattanDistance,
   getBasicSafeMoves,
+  canAreaTrapSnake,
   getSafeMoves
 }

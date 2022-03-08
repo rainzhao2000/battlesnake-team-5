@@ -1,7 +1,7 @@
 // reference: Chapter 3 of Russell, S. J., Norvig, P., & Chang, M.-W. (2021). Artificial Intelligence: A modern approach. Pearson.
 
 const { State, Node, COLORS, getOutputGrid, printGrid, printState } = require('./state');
-const { manhattanDistance, getBasicSafeMoves, getSafeMoves } = require('./safe-moves');
+const { isPosWithinBounds, manhattanDistance, getBasicSafeMoves, canAreaTrapSnake, getSafeMoves } = require('./safe-moves');
 const v8 = require('v8');
 
 const structuredClone = obj => {
@@ -24,22 +24,6 @@ function printSearchPath(node) {
   printGrid(grid);
 }
 
-// function isMovingUp(snake) {
-//   return snake.head.x == snake.body[1].x && snake.head.y == snake.body[1].y+1;
-// }
-
-// function isMovingDown(snake) {
-//   return snake.head.x == snake.body[1].x && snake.head.y == snake.body[1].y-1;
-// }
-
-// function isMovingLeft(snake) {
-//   return snake.head.x == snake.body[1].x-1 && snake.head.y == snake.body[1].y;
-// }
-
-// function isMovingRight(snake) {
-//   return snake.head.x == snake.body[1].x+1 && snake.head.y == snake.body[1].y;
-// }
-
 // simulate the next game state
 function getResult(state, action) {
   const newBoard = structuredClone(state.board);
@@ -59,7 +43,7 @@ function getResult(state, action) {
     if (snake.id == state.you.id) {
       newSnake.head = myHead;
     } else {
-      // assume no intelligence i.e naively move other snake heads randomly
+      // assume other snakes try to move to food or a safe move
       const safeMoves = getBasicSafeMoves(snake.id, state.board);
       const move = safeMoves[Math.floor(Math.random() * safeMoves.length)];
       switch (move) {
@@ -69,11 +53,6 @@ function getResult(state, action) {
         case 'right': newSnake.head.x += 1; break;
         default: throw 'opponent snake has no safe moves';
       }
-      // if (isMovingUp(snake)) newSnake.head.y += 1;
-      // else if (isMovingDown(snake)) newSnake.head.y -= 1;
-      // else if (isMovingLeft(snake)) newSnake.head.x -= 1;
-      // else if (isMovingRight(snake)) newSnake.head.x += 1;
-      // else throw ['fuc> ', snake.head, snake.body];
     }
     // remove last body segment
     if (!newSnake.consumedFood) newSnake.body.pop();
@@ -100,6 +79,11 @@ function getResult(state, action) {
   for (const otherSnake of newBoard.snakes) {
     for (const snake of newBoard.snakes) {
       if (snake.markedForDeath) break;
+      // wall collision
+      if (!isPosWithinBounds(snake.head, newBoard)) {
+        snake.markedForDeath = true;
+        break;
+      }
       // head on head collision
       if (snake.id != otherSnake.id && snake.head.x == otherSnake.head.x && snake.head.y == otherSnake.head.y) {
         if (snake.length < otherSnake.length) {
@@ -132,23 +116,10 @@ function getActionCost(state, action, newState) {
   return 1;
 }
 
-// function hasEscape(node, numEvals = 1) {
-//   const children = expand(node);
-//   if (children.length > 1) {
-//     console.error(`found escape | searched ${numEvals} states`);
-//     return true;
-//   }
-//   if (children.length < 1) {
-//     console.error(`no escape | searched ${numEvals} states`);
-//     return false;
-//   }
-//   return children.some((child) => hasEscape(child, numEvals+1));
-// }
-
 function hasEscape(node) {
   const { safeMoves, area } = getSafeMoves(node.state);
-  const canEscape = safeMoves.length && safeMoves.some((move) => area[move] >= node.state.you.length);
-  console.log('escape:', canEscape, safeMoves, area);
+  const canEscape = safeMoves.length && safeMoves.some((move) => !canAreaTrapSnake(area[move], node.state.you));
+  console.log(node.state.you.head, 'escape:', canEscape, safeMoves, area);
   return canEscape;
 }
 
@@ -164,8 +135,7 @@ function isTailGoal(node) {
   const me = node.state.you;
   const dx = me.body[me.body.length-1].x - me.head.x;
   const dy = me.body[me.body.length-1].y - me.head.y;
-  const tolerance = 1;//me.body.length % 2 == 0 ? 1 : 2;
-  return Math.abs(dx) + Math.abs(dy) <= tolerance;
+  return Math.abs(dx) + Math.abs(dy) <= 1;
 }
 
 class MinHeap {
