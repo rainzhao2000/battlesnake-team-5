@@ -161,26 +161,26 @@ function getBasicSafeMoves(snakeId, board) {
   // Don't hit any snake bodies except tails
   possibleMoves.up = possibleMoves.up && snakes.every(
     (snake) => snake.body.every(
-      (segment, i) => (i == snake.body.length-1 && isUp(segment, myHead) && !isSnakeNearFood(snake, board.food)) ||
-        !isUp(segment, myHead)
+      (segment, i) => !isUp(segment, myHead) ||
+        (i == snake.body.length-1 && !isSnakeNearFood(snake, board.food))
     )
   );
   possibleMoves.down = possibleMoves.down && snakes.every(
     (snake) => snake.body.every(
-      (segment, i) => (i == snake.body.length-1 && isDown(segment, myHead) && !isSnakeNearFood(snake, board.food)) ||
-        !isDown(segment, myHead)
+      (segment, i) => !isDown(segment, myHead) ||
+      (i == snake.body.length-1 && !isSnakeNearFood(snake, board.food))
     )
   );
   possibleMoves.left = possibleMoves.left && snakes.every(
     (snake) => snake.body.every(
-      (segment, i) => (i == snake.body.length-1 && isLeft(segment, myHead) && !isSnakeNearFood(snake, board.food)) ||
-        !isLeft(segment, myHead)
+      (segment, i) => !isLeft(segment, myHead) ||
+      (i == snake.body.length-1 && !isSnakeNearFood(snake, board.food))
     )
   );
   possibleMoves.right = possibleMoves.right && snakes.every(
     (snake) => snake.body.every(
-      (segment, i) => (i == snake.body.length-1 && isRight(segment, myHead) && !isSnakeNearFood(snake, board.food)) ||
-        !isRight(segment, myHead)
+      (segment, i) => !isRight(segment, myHead) ||
+      (i == snake.body.length-1 && !isSnakeNearFood(snake, board.food))
     )
   );
   return Object.keys(possibleMoves).filter((move) => possibleMoves[move]);
@@ -201,7 +201,6 @@ function getSafeMoves(gameState) {
     area[move] = getAreaOfFreedom(gameState, move);
     possibleMoves[move] = area[move] > 0;
   }
-
   // Don't risk head-on unless necesssary
   const isUpRisky = !possibleMoves.up || snakes.some(
     (snake) => (snake.length >= gameState.you.length) && (
