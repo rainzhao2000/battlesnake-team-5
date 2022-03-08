@@ -317,6 +317,14 @@ function getTimeout(tolerance) {
   }
 }
 
+function isHungry({ board, you }) {
+  let maxLength = 0;
+  for (const snake of board.snakes) {
+    if (snake.id != you.id && snake.length > maxLength) maxLength = snake.length;
+  }
+  return you.length < maxLength+2 || you.health < 50;
+}
+
 function setupFoodHeuristicCost() {
   let nearestFood;
   return (node) => {
@@ -340,7 +348,7 @@ function tailHeuristicCost(node) {
 function aStarSearch(gameState) {
   let isGoal;
   let heuristicCost;
-  if (gameState.you.health < 100) {
+  if (isHungry(gameState)) {
     console.error('hungry');
     isGoal = isFoodGoal;
     heuristicCost = setupFoodHeuristicCost();
@@ -371,7 +379,6 @@ function aStarSearch(gameState) {
 }
 
 function defaultMove(gameState) {
-  // try to move forward, otherwise random
   let move;
   const { safeMoves, area } = getSafeMoves(new State(gameState));
   console.error(safeMoves, area);
@@ -383,15 +390,6 @@ function defaultMove(gameState) {
       maxArea = area[safeMove];
     }
   }
-  // console.error('trying to move forward...');
-  // if (safeMoves.includes('up') && isMovingUp(gameState.you)) move = 'up';
-  // else if (safeMoves.includes('down') && isMovingDown(gameState.you)) move = 'down';
-  // else if (safeMoves.includes('left') && isMovingLeft(gameState.you)) move = 'left';
-  // else if (safeMoves.includes('right') && isMovingRight(gameState.you)) move = 'right';
-  // else {
-  //   console.error('moving randomly...');
-  //   move = safeMoves[Math.floor(Math.random() * safeMoves.length)];
-  // }
   return { move };
 }
 
