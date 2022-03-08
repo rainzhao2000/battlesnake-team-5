@@ -134,8 +134,8 @@ function getAreaOfFreedom(state, move) {
   return area;
 }
 
-function getBasicSafeMoves(snakeId, board) {
-  const myHead = board.snakes.find((snake) => snake.id == snakeId).head;
+function getBasicSafeMoves(snake, board) {
+  const myHead = snake.head;
   const snakes = board.snakes;
   const possibleMoves = new MovesObject(true, true, true, true);
   // Don't hit walls.

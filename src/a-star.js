@@ -24,6 +24,24 @@ function printSearchPath(node) {
   printGrid(grid);
 }
 
+function getGreedyMoves(snake, food) {
+  let nearestFood;
+  let minDistance = Number.MAX_SAFE_INTEGER;
+  for (const foo of food) {
+    const d = manhattanDistance(snake.head, foo);
+    if (d < minDistance) {
+      nearestFood = foo;
+      minDistance = d;
+    }
+  }
+  const moves = [];
+  if (nearestFood.y > snake.head.y) moves.push('up');
+  else if (nearestFood.y < snake.head.y) moves.push('down');
+  if (nearestFood.x < snake.head.x) moves.push('left');
+  else if (nearestFood.x > snake.head.x) moves.push('right');
+  return moves;
+}
+
 // simulate the next game state
 function getResult(state, action) {
   const newBoard = structuredClone(state.board);
@@ -43,9 +61,12 @@ function getResult(state, action) {
     if (snake.id == state.you.id) {
       newSnake.head = myHead;
     } else {
-      // assume other snakes try to move to food or a safe move
-      const safeMoves = getBasicSafeMoves(snake.id, state.board);
-      const move = safeMoves[Math.floor(Math.random() * safeMoves.length)];
+      // assume other snakes pick a random greedy safe move
+      const greedyMoves = getGreedyMoves(snake, state.board);
+      const safeMoves = getBasicSafeMoves(snake, state.board);
+      const moves = greedyMoves.filter((move) => safeMoves.includes(move));
+      const move = moves.length ? moves[Math.floor(Math.random() * moves.length)] :
+        safeMoves[Math.floor(Math.random() * safeMoves.length)];
       switch (move) {
         case 'up': newSnake.head.y += 1; break;
         case 'down': newSnake.head.y -= 1; break;
@@ -133,9 +154,7 @@ function isFoodGoal(node) {
 
 function isTailGoal(node) {
   const me = node.state.you;
-  const dx = me.body[me.body.length-1].x - me.head.x;
-  const dy = me.body[me.body.length-1].y - me.head.y;
-  return Math.abs(dx) + Math.abs(dy) <= 1;
+  return manhattanDistance(me.head, me.body[me.body.length-1]) <= 1;
 }
 
 class MinHeap {
@@ -299,7 +318,7 @@ function setupFoodHeuristicCost() {
   let nearestFood;
   return (node) => {
     if (nearestFood) return manhattanDistance(node.state.you.head, nearestFood);
-    let minDistance = node.state.board.width + node.state.board.height;
+    let minDistance = Number.MAX_SAFE_INTEGER;
     for (const foo of node.state.board.food) {
       const d = manhattanDistance(node.state.you.head, foo);
       if (d < minDistance) {
@@ -307,6 +326,7 @@ function setupFoodHeuristicCost() {
         minDistance = d;
       }
     }
+    return minDistance;
   }
 }
 
