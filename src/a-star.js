@@ -180,7 +180,8 @@ function isKillGoal(node) {
 
 function isTailGoal(node) {
   const me = node.state.you;
-  const foundGoal = manhattanDistance(me.head, me.body[me.body.length-1]) <= 1;
+  const foundGoal = manhattanDistance(me.head, me.body[me.body.length-1]) <= 1 &&
+    hasEscape(node);
   if (foundGoal) console.error('found tail goal');
   return foundGoal;
 }

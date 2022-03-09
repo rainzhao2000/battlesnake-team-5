@@ -78,10 +78,9 @@ function getAreaAtPos(pos, forSnake, board) {
         if (index == snake.body.length-1 &&
           (snake.id == forSnake.id ||
             (manhattanDistance(forSnake.head, snake.body[index]) <= 2 &&
-            !isSnakeNearFood(snake, board.food, 2))) &&
-          !isNearOtherDangerousHead(pos, forSnake, board, 2)
+            !isSnakeNearFood(snake, board.food, 2)))
         ) {
-          return snake.body.length;
+          return isNearOtherDangerousHead(pos, forSnake, board, 2) ? 1 : snake.body.length;
         }
         return 0;
       }
@@ -225,7 +224,7 @@ function getBasicSafeMoves(forSnake, board) {
 }
 
 function canAreaTrapSnake(area, snake) {
-  return area < snake.length;
+  return area < snake.length+2;
 }
 
 function getAdvancedSafeMoves(forSnake, board) {
