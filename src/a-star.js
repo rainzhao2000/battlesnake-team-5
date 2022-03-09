@@ -73,7 +73,7 @@ const getResult = (state, action) => {
     const newSnake = newBoard.snakes[i];
     if (snake.id == state.you.id) {
       newSnake.head = myHead;
-      newSnake.killedSnake = false; // reset tag if search continues
+      newSnake.killedSnake = null; // reset tag if search continues
     } else {
       // assume other snakes pick a random greedy safe move
       const greedyMoves = getGreedyMoves(snake, state.board);
@@ -122,10 +122,10 @@ const getResult = (state, action) => {
       if (snake.id != otherSnake.id && snake.head.x == otherSnake.head.x && snake.head.y == otherSnake.head.y) {
         if (snake.length < otherSnake.length) {
           snake.markedForDeath = true;
-          if (otherSnake.id == state.you.id) otherSnake.killedSnake = true; // tag for kill goal
+          if (otherSnake.id == state.you.id) otherSnake.killedSnake = snake.name; // tag for kill goal
         } else if (snake.length > otherSnake.length) {
           otherSnake.markedForDeath = true;
-          if (snake.id == state.you.id) snake.killedSnake = true; // tag for kill goal
+          if (snake.id == state.you.id) snake.killedSnake = otherSnake.name; // tag for kill goal
         } else {
           snake.markedForDeath = true;
           otherSnake.markedForDeath = true;
@@ -179,8 +179,8 @@ const isFoodGoal = (node) => {
 
 const isKillGoal = (node) => {
   const foundGoal = node.state.you.killedSnake;
-  if (foundGoal) console.log('found kill goal');
-  return foundGoal;
+  if (foundGoal) console.log(`found kill goal on ${foundGoal}`);
+  return !!foundGoal;
 }
 
 const isTailGoal = (node) => {
