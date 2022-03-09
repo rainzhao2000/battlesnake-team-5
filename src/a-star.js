@@ -153,9 +153,14 @@ function getActionCost(state, action, newState) {
 }
 
 function hasEscape(node) {
+  if (node.state.board.snakes.some(
+    (snake) => snake.length >= node.state.you.length &&
+      snake.id != node.state.you.id &&
+      manhattanDistance(node.state.you.head, snake.head) <= 2
+  )) return false;
   const { idealMoves, area } = getSafeMoves(node.state);
   const canEscape = idealMoves.length > 0;
-  console.error(node.state.you.head, 'escape:', canEscape, idealMoves, area);
+  if (canEscape) console.error(node.state.you.head, 'has escape:', idealMoves, area);
   return canEscape;
 }
 
