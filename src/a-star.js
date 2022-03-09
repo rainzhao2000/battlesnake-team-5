@@ -163,7 +163,7 @@ const hasEscape = (node) => {
   )) return false;
   const { idealMoves, area } = getSafeMoves(node.state);
   const canEscape = idealMoves.length > 0;
-  if (canEscape) console.error(node.state.you.head, 'has escape:', idealMoves, area);
+  if (canEscape) console.log(node.state.you.head, 'has escape:', idealMoves, area);
   return canEscape;
 }
 
@@ -173,13 +173,13 @@ const isFoodGoal = (node) => {
   const foundGoal = node.state.board.food.some(
     (foo) => foo.x == me.head.x && foo.y == me.head.y
   ) && hasEscape(node);
-  if (foundGoal) console.error('found food goal');
+  if (foundGoal) console.log('found food goal');
   return foundGoal;
 }
 
 const isKillGoal = (node) => {
   const foundGoal = node.state.you.killedSnake;
-  if (foundGoal) console.error('found kill goal');
+  if (foundGoal) console.log('found kill goal');
   return foundGoal;
 }
 
@@ -187,7 +187,7 @@ const isTailGoal = (node) => {
   const me = node.state.you;
   const foundGoal = manhattanDistance(me.head, me.body[me.body.length-1]) <= 1 &&
     hasEscape(node);
-  if (foundGoal) console.error('found tail goal');
+  if (foundGoal) console.log('found tail goal');
   return foundGoal;
 }
 
@@ -296,7 +296,7 @@ class MinHeap {
 const expand = (node) => {
   const s = node.state;
   const { safeMoves, area } = getSafeMoves(s);
-  if (!node.parent) console.error(safeMoves, area);
+  if (!node.parent) console.log(safeMoves, area);
   return safeMoves.map((action) => {
     let newS;
     try {
@@ -321,14 +321,14 @@ const bestFirstSearch = (state, isGoal, evalFn, aboutToTimeout) => {
     // printState(node.state);
     // printSearchPath(node);
     if (aboutToTimeout()) {
-      console.error(`search timeout | searched ${numSearched} states`);
+      console.log(`search timeout | searched ${numSearched} states`);
       return node;
     }
     numSearched += 1;
     const children = expand(node);
     if (children.length == 0) continue; // dead end
     if (isGoal(node)) {
-      console.error(`found goal | searched ${numSearched} states`);
+      console.log(`found goal | searched ${numSearched} states`);
       return node;
     }
     for (const child of children) {
@@ -386,11 +386,11 @@ const aStarSearch = (gameState) => {
   let isGoal;
   let heuristicCost;
   if (isHungry(gameState)) {
-    console.error('hungry');
+    console.log('hungry');
     isGoal = isFoodOrKillGoal;
     heuristicCost = setupFoodHeuristicCost();
   } else {
-    console.error('full');
+    console.log('full');
     isGoal = isKillOrTailGoal;
     heuristicCost = tailHeuristicCost;
   }
@@ -406,7 +406,7 @@ const aStarSearch = (gameState) => {
   } catch (err) {
     throw err;
   } finally {
-    console.error(`simulated ${simulatedDeaths} deaths`);
+    console.log(`simulated ${simulatedDeaths} deaths`);
   }
   // backtrack from goal to find the action taken
   // const pathToGoal = [goal.state]; // for debugging
@@ -426,8 +426,8 @@ const aStarSearch = (gameState) => {
 const defaultMove = (gameState) => {
   let move;
   const { safeMoves, area } = getSafeMoves(new State(gameState));
-  console.error(safeMoves, area);
-  console.error('default move to largest area');
+  console.log(safeMoves, area);
+  console.log('default move to largest area');
   let maxArea = -1;
   for (const safeMove of safeMoves) {
     if (area[safeMove] > maxArea) {

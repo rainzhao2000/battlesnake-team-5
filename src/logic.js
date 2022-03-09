@@ -1,7 +1,7 @@
 const { defaultMove } = require('./a-star');
 
 function info() {
-  console.error("INFO")
+  console.log("INFO")
   const response = {
     apiversion: "1",
     author: "",
@@ -13,18 +13,18 @@ function info() {
 }
 
 function start(gameState) {
-  console.error(`${gameState.game.id} START`)
+  console.log(`${gameState.game.id} START`)
 }
 
 function end(gameState) {
-  console.error(`${gameState.game.id} END\n`)
+  console.log(`${gameState.game.id} END\n`)
 }
 
 function move(pool, gameState) {
   return new Promise((resolve) => {
     if (gameState.turn < 1) {
       const response = defaultMove(gameState);
-      console.error(`${gameState.game.id} MOVE ${gameState.turn}: ${response.move}`);
+      console.log(`${gameState.game.id} MOVE ${gameState.turn}: ${response.move}`);
       resolve(response);
       return;
     }
@@ -34,7 +34,7 @@ function move(pool, gameState) {
         console.error(err);
         response = defaultMove(gameState);
       }
-      console.error(`${gameState.game.id} MOVE ${gameState.turn}: ${response.move}`);
+      console.log(`${gameState.game.id} MOVE ${gameState.turn}: ${response.move}`);
       resolve(response);
     });
   });

@@ -101,10 +101,10 @@ const getAreaOfFreedom = (forSnake, board, move) => {
   const headPos = new Position(forSnake.head.x, forSnake.head.y);
   let initial;
   switch(move) {
-    case 'up': initial = new Position(headPos.x, headPos.y+1);
-    case 'down': initial = new Position(headPos.x, headPos.y-1);
-    case 'left': initial = new Position(headPos.x-1, headPos.y);
-    case 'right': initial = new Position(headPos.x+1, headPos.y);
+    case 'up': initial = new Position(headPos.x, headPos.y+1); break;
+    case 'down': initial = new Position(headPos.x, headPos.y-1); break;
+    case 'left': initial = new Position(headPos.x-1, headPos.y); break;
+    case 'right': initial = new Position(headPos.x+1, headPos.y); break;
   }
   const frontier = [initial];
   let area = 0;
