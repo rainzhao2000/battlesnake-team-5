@@ -351,11 +351,12 @@ function getTimeout(tolerance) {
 }
 
 function isHungry({ board, you }) {
-  let maxLength = 0;
-  for (const snake of board.snakes) {
-    if (snake.id != you.id && snake.length > maxLength) maxLength = snake.length;
-  }
-  return you.length < maxLength+2 || you.health < 50;
+  // let maxLength = 0;
+  // for (const snake of board.snakes) {
+  //   if (snake.id != you.id && snake.length > maxLength) maxLength = snake.length;
+  // }
+  // return you.length < maxLength+2 || you.health < 50;
+  return true;
 }
 
 function setupFoodHeuristicCost() {
