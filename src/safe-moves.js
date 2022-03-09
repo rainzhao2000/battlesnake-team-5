@@ -18,60 +18,58 @@ class MovesObject {
   }
 }
 
-function isUp(segment, myHead) {
+const isUp = (segment, myHead) => {
   return segment.x == myHead.x && segment.y == myHead.y+1;
 }
 
-function isDown(segment, myHead) {
+const isDown = (segment, myHead) => {
   return segment.x == myHead.x && segment.y == myHead.y-1;
 }
 
-function isLeft(segment, myHead) {
+const isLeft = (segment, myHead) => {
   return segment.x == myHead.x-1 && segment.y == myHead.y;
 }
 
-function isRight(segment, myHead) {
+const isRight = (segment, myHead) => {
   return segment.x == myHead.x+1 && segment.y == myHead.y;
 }
 
-function isOtherHeadUpLeft(otherHead, myHead) {
+const isOtherHeadUpLeft = (otherHead, myHead) => {
   return otherHead.x == myHead.x-1 && otherHead.y == myHead.y+1;
 }
 
-function isOtherHeadUpRight(otherHead, myHead) {
+const isOtherHeadUpRight = (otherHead, myHead) => {
   return otherHead.x == myHead.x+1 && otherHead.y == myHead.y+1;
 }
 
-function isOtherHeadDownLeft(otherHead, myHead) {
+const isOtherHeadDownLeft = (otherHead, myHead) => {
   return otherHead.x == myHead.x-1 && otherHead.y == myHead.y-1;
 }
 
-function isOtherHeadDownRight(otherHead, myHead) {
+const isOtherHeadDownRight = (otherHead, myHead) => {
   return otherHead.x == myHead.x+1 && otherHead.y == myHead.y-1;
 }
 
-function isPosWithinBounds(pos, board) {
+const isPosWithinBounds = (pos, board) => {
   return 0 <= pos.x && pos.x < board.width && 0 <= pos.y && pos.y < board.height;
 }
 
-function manhattanDistance(a, b) {
+const manhattanDistance = (a, b) => {
   return Math.abs(b.x-a.x) + Math.abs(b.y-a.y);
 }
 
-function isSnakeNearFood(snake, food, radius) {
+const isSnakeNearFood = (snake, food, radius) => {
   return food.some((foo) => manhattanDistance(snake.head, foo) <= radius);
 }
 
-function isNearOtherDangerousHead(pos, forSnake ,board, radius) {
+const isNearOtherDangerousHead = (pos, forSnake ,board, radius) => {
   return board.snakes.some(
     (snake) => snake.id != forSnake.id && snake.length >= forSnake.length && manhattanDistance(pos, snake.head) <= radius
   );
 }
 
-function getAreaAtPos(pos, forSnake, board) {
-  if (!isPosWithinBounds(pos, board)) {
-    return 0;
-  }
+const getAreaAtPos = (pos, forSnake, board) => {
+  if (!isPosWithinBounds(pos, board)) return 0;
   for (const snake of board.snakes) {
     for (const index in snake.body) {
       if (snake.body[index].x == pos.x && snake.body[index].y == pos.y) {
@@ -89,18 +87,16 @@ function getAreaAtPos(pos, forSnake, board) {
   return 1;
 }
 
-function performMove(pos, move) {
-  let newPos = new Position(pos.x, pos.y)
+const performMove = (pos, move) => {
   switch(move) {
-    case 'up': newPos.y += 1; break;
-    case 'down': newPos.y -= 1; break;
-    case 'left': newPos.x -= 1; break;
-    case 'right': newPos.x += 1; break;
+    case 'up': return new Position(pos.x, pos.y+1);
+    case 'down': return new Position(pos.x, pos.y-1);
+    case 'left': return new Position(pos.x-1, pos.y);
+    case 'right': return new Position(pos.x+1, pos.y);
   }
-  return newPos;
 }
 
-function expandPosition(pos){
+const expandPosition = (pos) => {
   return [
     new Position(pos.x, pos.y + 1),
     new Position(pos.x, pos.y -1),
@@ -110,7 +106,7 @@ function expandPosition(pos){
 }
 
 // implemented as flood fill
-function getAreaOfFreedom(forSnake, board, move) {
+const getAreaOfFreedom = (forSnake, board, move) => {
   const headPos = new Position(forSnake.head.x, forSnake.head.y);
   let initial = performMove(headPos, move);
   const frontier = [initial];
@@ -119,6 +115,7 @@ function getAreaOfFreedom(forSnake, board, move) {
   reached.add(JSON.stringify(initial));
   let numSearched = 0;
   while (frontier.length) {
+    // only flood fill enough to gaurantee safety
     if (numSearched > forSnake.length * 3) return area;
     let pos = frontier.pop();
     const areaAtPos = getAreaAtPos(pos, forSnake, board);
@@ -139,7 +136,7 @@ function getAreaOfFreedom(forSnake, board, move) {
   return area;
 }
 
-function getBasicSafeMoves(forSnake, board) {
+const getBasicSafeMoves = (forSnake, board) => {
   const snakes = board.snakes;
   const possibleMoves = new MovesObject(true, true, true, true);
   // Don't hit walls.
@@ -166,25 +163,25 @@ function getBasicSafeMoves(forSnake, board) {
   possibleMoves.up = possibleMoves.up && snakes.every(
     (snake) => snake.body.every(
       (segment, i) => !isUp(segment, forSnake.head) ||
-        (i == snake.body.length-1 && !isSnakeNearFood(snake, board.food))
+        (i == snake.body.length-1 && !isSnakeNearFood(snake, board.food, 1))
     )
   );
   possibleMoves.down = possibleMoves.down && snakes.every(
     (snake) => snake.body.every(
       (segment, i) => !isDown(segment, forSnake.head) ||
-      (i == snake.body.length-1 && !isSnakeNearFood(snake, board.food))
+      (i == snake.body.length-1 && !isSnakeNearFood(snake, board.food, 1))
     )
   );
   possibleMoves.left = possibleMoves.left && snakes.every(
     (snake) => snake.body.every(
       (segment, i) => !isLeft(segment, forSnake.head) ||
-      (i == snake.body.length-1 && !isSnakeNearFood(snake, board.food))
+      (i == snake.body.length-1 && !isSnakeNearFood(snake, board.food, 1))
     )
   );
   possibleMoves.right = possibleMoves.right && snakes.every(
     (snake) => snake.body.every(
       (segment, i) => !isRight(segment, forSnake.head) ||
-      (i == snake.body.length-1 && !isSnakeNearFood(snake, board.food))
+      (i == snake.body.length-1 && !isSnakeNearFood(snake, board.food, 1))
     )
   );
 
@@ -223,19 +220,19 @@ function getBasicSafeMoves(forSnake, board) {
   return idealMoves.length ? idealMoves : moves.filter((key) => possibleMoves[key]);
 }
 
-function canAreaTrapSnake(area, snake) {
-  return area < snake.length+2;
+const canAreaTrapSnake = (area, snake) => {
+  return area < snake.length+2; // 2 is just an arbitrary buffer for food
 }
 
-function getAdvancedSafeMoves(forSnake, board) {
+const getAdvancedSafeMoves = (forSnake, board) => {
   const possibleMoves = new MovesObject(true, true, true, true);
+  const moves = Object.keys(possibleMoves);
   const area = new MovesObject(-1, -1, -1, -1);
   if (!forSnake) return {
     idealMoves: [],
-    safeMoves: possibleMoves,
+    safeMoves: moves,
     area
   };
-  const moves = Object.keys(possibleMoves);
   const snakes = board.snakes;
   const myHead = forSnake.head;
   for (const move of moves) {
@@ -280,7 +277,7 @@ function getAdvancedSafeMoves(forSnake, board) {
   };
 }
 
-function getSafeMoves(gameState) {
+const getSafeMoves = (gameState) => {
   return getAdvancedSafeMoves(gameState.you, gameState.board);
 }
 
