@@ -24,10 +24,10 @@ function printSearchPath(node) {
   printGrid(grid);
 }
 
-function getGreedyMoves(snake, food) {
-  let nearestFood;
+function getGreedyMoves(snake, board) {
+  let nearestFood = snake.body[snake.length-1]; // tail when no food
   let minDistance = Number.MAX_SAFE_INTEGER;
-  for (const foo of food) {
+  for (const foo of board.food) {
     const d = manhattanDistance(snake.head, foo);
     if (d < minDistance) {
       nearestFood = foo;
@@ -72,7 +72,7 @@ function getResult(state, action) {
         case 'down': newSnake.head.y -= 1; break;
         case 'left': newSnake.head.x -= 1; break;
         case 'right': newSnake.head.x += 1; break;
-        default: throw 'opponent snake has no safe moves';
+        default: throw `snake ${snake.name} has no safe moves`;
       }
     }
     // remove last body segment
@@ -140,7 +140,7 @@ function getActionCost(state, action, newState) {
 function hasEscape(node) {
   const { idealMoves, area } = getSafeMoves(node.state);
   const canEscape = idealMoves.length > 0;
-  console.error(node.state.you.head, 'escape:', canEscape, safeMoves, area);
+  console.error(node.state.you.head, 'escape:', canEscape, idealMoves, area);
   return canEscape;
 }
 
