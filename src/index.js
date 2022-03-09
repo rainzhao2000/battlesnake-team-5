@@ -32,13 +32,13 @@ app.post("/end", (req, res) => {
 
 // Start the Express server
 const server = app.listen(port, () => {
-  console.log(`Starting Battlesnake Server at http://0.0.0.0:${port}...`)
+  console.error(`Starting Battlesnake Server at http://0.0.0.0:${port}...`)
 })
 
 process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server')
+  console.error('SIGTERM signal received: closing HTTP server')
   server.close(() => {
-    console.log('HTTP server closed')
+    console.error('HTTP server closed')
   })
   pool.close();
 })
