@@ -8,23 +8,23 @@ const structuredClone = obj => {
   return v8.deserialize(v8.serialize(obj));
 };
 
-function printSearchPath(node) {
+const PATH_COLORS = [COLORS.BgBlue, COLORS.BgWhite, COLORS.BgCyan];
+const printSearchPath = (node) => {
   let initial = node;
   while (initial.parent) initial = initial.parent;
   const grid = getOutputGrid(initial.state);
   let curr = node;
   let count = 0;
-  const colors = [COLORS.BgBlue, COLORS.BgWhite, COLORS.BgCyan];
   while (curr.parent) {
     const row = grid[node.state.board.height-1-curr.state.you.head.y];
-    row[curr.state.you.head.x] = `${colors[count%3]}${row[curr.state.you.head.x]}`;
+    row[curr.state.you.head.x] = `${PATH_COLORS[count%3]}${row[curr.state.you.head.x]}`;
     curr = curr.parent;
     count += 1;
   }
   printGrid(grid);
 }
 
-function getGreedyMoves(forSnake, board) {
+const getGreedyMoves = (forSnake, board) => {
   const edibleSnake = board.snakes.find(
     (snake) => snake.length < forSnake.length && manhattanDistance(forSnake.head, snake.head) <= 2
   );
@@ -45,7 +45,7 @@ function getGreedyMoves(forSnake, board) {
   return moves;
 }
 
-function getAdvancedSafeMovesWrapper(forSnake, board) {
+const getAdvancedSafeMovesWrapper = (forSnake, board) => {
   return getAdvancedSafeMoves(forSnake, board).safeMoves;
 }
 
@@ -54,8 +54,9 @@ const SIMULATED_DEATH = 69;
 let simulatedDeaths = 0;
 
 // simulate the next game state
-function getResult(state, action) {
-  const enemySafetyLogic = turn > 0 ? getAdvancedSafeMovesWrapper : getBasicSafeMoves;
+const getResult = (state, action) => {
+  // const enemySafetyLogic = turn > 0 ? getAdvancedSafeMovesWrapper : getBasicSafeMoves;
+  const enemySafetyLogic = getAdvancedSafeMovesWrapper;
   const newBoard = structuredClone(state.board);
   // assume no new food and remove eaten food
   newBoard.food = newBoard.food.filter((foo) => !foo.consumed);
@@ -72,6 +73,7 @@ function getResult(state, action) {
     const newSnake = newBoard.snakes[i];
     if (snake.id == state.you.id) {
       newSnake.head = myHead;
+      newSnake.killedSnake = false; // reset tag if search continues
     } else {
       // assume other snakes pick a random greedy safe move
       const greedyMoves = getGreedyMoves(snake, state.board);
@@ -104,7 +106,6 @@ function getResult(state, action) {
       newSnake.health -= 1;
       if (newSnake.health == 0) {
         newSnake.markedForDeath = true;
-        continue;
       }
     }
   }
@@ -121,8 +122,10 @@ function getResult(state, action) {
       if (snake.id != otherSnake.id && snake.head.x == otherSnake.head.x && snake.head.y == otherSnake.head.y) {
         if (snake.length < otherSnake.length) {
           snake.markedForDeath = true;
+          if (otherSnake.id == state.you.id) otherSnake.killedSnake = true; // tag for kill goal
         } else if (snake.length > otherSnake.length) {
           otherSnake.markedForDeath = true;
+          if (snake.id == state.you.id) snake.killedSnake = true; // tag for kill goal
         } else {
           snake.markedForDeath = true;
           otherSnake.markedForDeath = true;
@@ -148,11 +151,11 @@ function getResult(state, action) {
   return new State({ board: newBoard, you });
 }
 
-function getActionCost(state, action, newState) {
+const getActionCost = (state, action, newState) => {
   return 1;
 }
 
-function hasEscape(node) {
+const hasEscape = (node) => {
   if (node.state.board.snakes.some(
     (snake) => snake.length >= node.state.you.length &&
       snake.id != node.state.you.id &&
@@ -164,7 +167,7 @@ function hasEscape(node) {
   return canEscape;
 }
 
-function isFoodGoal(node) {
+const isFoodGoal = (node) => {
   const me = node.state.you;
   // food and escape goal
   const foundGoal = node.state.board.food.some(
@@ -174,16 +177,13 @@ function isFoodGoal(node) {
   return foundGoal;
 }
 
-function isKillGoal(node) {
-  const me = node.state.you;
-  const foundGoal = node.state.board.snakes.some(
-    (snake) => snake.head.x == me.head.x && snake.head.y == me.head.y && snake.length < me.length
-  );
+const isKillGoal = (node) => {
+  const foundGoal = node.state.you.killedSnake;
   if (foundGoal) console.error('found kill goal');
   return foundGoal;
 }
 
-function isTailGoal(node) {
+const isTailGoal = (node) => {
   const me = node.state.you;
   const foundGoal = manhattanDistance(me.head, me.body[me.body.length-1]) <= 1 &&
     hasEscape(node);
@@ -191,11 +191,11 @@ function isTailGoal(node) {
   return foundGoal;
 }
 
-function isFoodOrKillGoal(node) {
+const isFoodOrKillGoal = (node) => {
   return isFoodGoal(node) || isKillGoal(node);
 }
 
-function isKillOrTailGoal(node) {
+const isKillOrTailGoal = (node) => {
   return isKillGoal(node) || isTailGoal(node);
 }
 
@@ -293,7 +293,7 @@ class MinHeap {
   }
 }
 
-function expand(node) {
+const expand = (node) => {
   const s = node.state;
   const { safeMoves, area } = getSafeMoves(s);
   if (!node.parent) console.error(safeMoves, area);
@@ -310,7 +310,7 @@ function expand(node) {
   }).filter((node) => node != null);
 }
 
-function bestFirstSearch(state, isGoal, evalFn, aboutToTimeout) {
+const bestFirstSearch = (state, isGoal, evalFn, aboutToTimeout) => {
   let node = new Node(state, null, null, 0);
   const frontier = new MinHeap(evalFn, node);
   const reached = new Map();
@@ -342,7 +342,7 @@ function bestFirstSearch(state, isGoal, evalFn, aboutToTimeout) {
   throw `no solution | searched ${numSearched} states`;
 }
 
-function getTimeout(tolerance) {
+const getTimeout = (tolerance) => {
   const startTime = new Date();
   return () => {
     const currentTime = new Date();
@@ -350,7 +350,7 @@ function getTimeout(tolerance) {
   }
 }
 
-function isHungry({ board, you }) {
+const isHungry = ({ board, you }) => {
   // let maxLength = 0;
   // for (const snake of board.snakes) {
   //   if (snake.id != you.id && snake.length > maxLength) maxLength = snake.length;
@@ -359,7 +359,7 @@ function isHungry({ board, you }) {
   return true;
 }
 
-function setupFoodHeuristicCost() {
+const setupFoodHeuristicCost = () => {
   let nearestFood;
   return (node) => {
     if (nearestFood) return manhattanDistance(node.state.you.head, nearestFood);
@@ -375,12 +375,12 @@ function setupFoodHeuristicCost() {
   }
 }
 
-function tailHeuristicCost(node) {
+const tailHeuristicCost = (node) => {
   const me = node.state.you;
   return manhattanDistance(me.head, me.body[me.body.length-1]);
 }
 
-function aStarSearch(gameState) {
+const aStarSearch = (gameState) => {
   turn = gameState.turn;
   simulatedDeaths = 0;
   let isGoal;
@@ -423,7 +423,7 @@ function aStarSearch(gameState) {
   return { move: node.action };
 }
 
-function defaultMove(gameState) {
+const defaultMove = (gameState) => {
   let move;
   const { safeMoves, area } = getSafeMoves(new State(gameState));
   console.error(safeMoves, area);

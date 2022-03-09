@@ -87,15 +87,6 @@ const getAreaAtPos = (pos, forSnake, board) => {
   return 1;
 }
 
-const performMove = (pos, move) => {
-  switch(move) {
-    case 'up': return new Position(pos.x, pos.y+1);
-    case 'down': return new Position(pos.x, pos.y-1);
-    case 'left': return new Position(pos.x-1, pos.y);
-    case 'right': return new Position(pos.x+1, pos.y);
-  }
-}
-
 const expandPosition = (pos) => {
   return [
     new Position(pos.x, pos.y + 1),
@@ -108,7 +99,13 @@ const expandPosition = (pos) => {
 // implemented as flood fill
 const getAreaOfFreedom = (forSnake, board, move) => {
   const headPos = new Position(forSnake.head.x, forSnake.head.y);
-  let initial = performMove(headPos, move);
+  let initial;
+  switch(move) {
+    case 'up': initial = new Position(headPos.x, headPos.y+1);
+    case 'down': initial = new Position(headPos.x, headPos.y-1);
+    case 'left': initial = new Position(headPos.x-1, headPos.y);
+    case 'right': initial = new Position(headPos.x+1, headPos.y);
+  }
   const frontier = [initial];
   let area = 0;
   const reached = new Set();
