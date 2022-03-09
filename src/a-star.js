@@ -1,7 +1,7 @@
 // reference: Chapter 3 of Russell, S. J., Norvig, P., & Chang, M.-W. (2021). Artificial Intelligence: A modern approach. Pearson.
 
 const { State, Node, COLORS, getOutputGrid, printGrid, printState } = require('./state');
-const { isPosWithinBounds, manhattanDistance, getBasicSafeMoves, canAreaTrapSnake, getSafeMoves } = require('./safe-moves');
+const { isPosWithinBounds, manhattanDistance, getBasicSafeMoves, getAdvancedSafeMoves, getSafeMoves } = require('./safe-moves');
 const v8 = require('v8');
 
 const structuredClone = obj => {
@@ -24,26 +24,38 @@ function printSearchPath(node) {
   printGrid(grid);
 }
 
-function getGreedyMoves(snake, board) {
-  let nearestFood = snake.body[snake.length-1]; // tail when no food
+function getGreedyMoves(forSnake, board) {
+  const edibleSnake = board.snakes.find(
+    (snake) => snake.length < forSnake.length && manhattanDistance(forSnake.head, snake.head) <= 2
+  );
+  let nearestGoal = edibleSnake || forSnake.body[forSnake.length-1]; // default to own tail goal
   let minDistance = Number.MAX_SAFE_INTEGER;
   for (const foo of board.food) {
-    const d = manhattanDistance(snake.head, foo);
+    const d = manhattanDistance(forSnake.head, foo);
     if (d < minDistance) {
-      nearestFood = foo;
+      nearestGoal = foo; // override goal with nearest food
       minDistance = d;
     }
   }
   const moves = [];
-  if (nearestFood.y > snake.head.y) moves.push('up');
-  else if (nearestFood.y < snake.head.y) moves.push('down');
-  if (nearestFood.x < snake.head.x) moves.push('left');
-  else if (nearestFood.x > snake.head.x) moves.push('right');
+  if (nearestGoal.y > forSnake.head.y) moves.push('up');
+  else if (nearestGoal.y < forSnake.head.y) moves.push('down');
+  if (nearestGoal.x < forSnake.head.x) moves.push('left');
+  else if (nearestGoal.x > forSnake.head.x) moves.push('right');
   return moves;
 }
 
+function getAdvancedSafeMovesWrapper(forSnake, board) {
+  return getAdvancedSafeMoves(forSnake, board).safeMoves;
+}
+
+let turn = 0;
+const SIMULATED_DEATH = 69;
+let simulatedDeaths = 0;
+
 // simulate the next game state
 function getResult(state, action) {
+  const enemySafetyLogic = turn > 0 ? getAdvancedSafeMovesWrapper : getBasicSafeMoves;
   const newBoard = structuredClone(state.board);
   // assume no new food and remove eaten food
   newBoard.food = newBoard.food.filter((foo) => !foo.consumed);
@@ -63,7 +75,7 @@ function getResult(state, action) {
     } else {
       // assume other snakes pick a random greedy safe move
       const greedyMoves = getGreedyMoves(snake, state.board);
-      const safeMoves = getBasicSafeMoves(snake, state.board);
+      const safeMoves = enemySafetyLogic(snake, state.board);
       const moves = greedyMoves.filter((move) => safeMoves.includes(move));
       const move = moves.length ? moves[Math.floor(Math.random() * moves.length)] :
         safeMoves[Math.floor(Math.random() * safeMoves.length)];
@@ -72,7 +84,7 @@ function getResult(state, action) {
         case 'down': newSnake.head.y -= 1; break;
         case 'left': newSnake.head.x -= 1; break;
         case 'right': newSnake.head.x += 1; break;
-        default: throw `snake ${snake.name} has no safe moves`;
+        default: newSnake.markedForDeath = true;
       }
     }
     // remove last body segment
@@ -129,7 +141,10 @@ function getResult(state, action) {
   // kill snakes marked for death
   newBoard.snakes = newBoard.snakes.filter((snake) => !snake.markedForDeath);
   const you = structuredClone(newBoard.snakes.find((snake) => snake.id == state.you.id));
-  if (!you) throw 'simulated death';
+  if (!you) {
+    simulatedDeaths += 1;
+    throw SIMULATED_DEATH;
+  }
   return new State({ board: newBoard, you });
 }
 
@@ -147,14 +162,35 @@ function hasEscape(node) {
 function isFoodGoal(node) {
   const me = node.state.you;
   // food and escape goal
-  return node.state.board.food.some(
+  const foundGoal = node.state.board.food.some(
     (foo) => foo.x == me.head.x && foo.y == me.head.y
   ) && hasEscape(node);
+  if (foundGoal) console.error('found food goal');
+  return foundGoal;
+}
+
+function isKillGoal(node) {
+  const me = node.state.you;
+  const foundGoal = node.state.board.snakes.some(
+    (snake) => snake.head.x == me.head.x && snake.head.y == me.head.y && snake.length < me.length
+  );
+  if (foundGoal) console.error('found kill goal');
+  return foundGoal;
 }
 
 function isTailGoal(node) {
   const me = node.state.you;
-  return manhattanDistance(me.head, me.body[me.body.length-1]) <= 1;
+  const foundGoal = manhattanDistance(me.head, me.body[me.body.length-1]) <= 1;
+  if (foundGoal) console.error('found tail goal');
+  return foundGoal;
+}
+
+function isFoodOrKillGoal(node) {
+  return isFoodGoal(node) || isKillGoal(node);
+}
+
+function isKillOrTailGoal(node) {
+  return isKillGoal(node) || isTailGoal(node);
 }
 
 class MinHeap {
@@ -260,7 +296,7 @@ function expand(node) {
     try {
       newS = getResult(s, action);
     } catch (err) {
-      console.error(err);
+      if (err !== SIMULATED_DEATH) console.error(err);
       return null;
     }
     const cost = node.pathCost + getActionCost(s, action, newS);
@@ -276,6 +312,7 @@ function bestFirstSearch(state, isGoal, evalFn, aboutToTimeout) {
   let numSearched = 0;
   while (!frontier.isEmpty()) {
     node = frontier.pop();
+    // printState(node.state);
     // printSearchPath(node);
     if (aboutToTimeout()) {
       console.error(`search timeout | searched ${numSearched} states`);
@@ -337,24 +374,33 @@ function tailHeuristicCost(node) {
 }
 
 function aStarSearch(gameState) {
+  turn = gameState.turn;
+  simulatedDeaths = 0;
   let isGoal;
   let heuristicCost;
   if (isHungry(gameState)) {
     console.error('hungry');
-    isGoal = isFoodGoal;
+    isGoal = isFoodOrKillGoal;
     heuristicCost = setupFoodHeuristicCost();
   } else {
     console.error('full');
-    isGoal = isTailGoal;
+    isGoal = isKillOrTailGoal;
     heuristicCost = tailHeuristicCost;
   }
   const aboutToTimeout = getTimeout(400);
-  const goal = bestFirstSearch(
-    new State(gameState),
-    isGoal,
-    (node) => /*node.pathCost + */heuristicCost(node),
-    aboutToTimeout
-  );
+  let goal;
+  try {
+    goal = bestFirstSearch(
+      new State(gameState),
+      isGoal,
+      (node) => /*node.pathCost + */heuristicCost(node),
+      aboutToTimeout
+    );
+  } catch (err) {
+    throw err;
+  } finally {
+    console.error(`simulated ${simulatedDeaths} deaths`);
+  }
   // backtrack from goal to find the action taken
   // const pathToGoal = [goal.state]; // for debugging
   let node = goal;
@@ -365,6 +411,7 @@ function aStarSearch(gameState) {
   // while (pathToGoal.length) {
   //   printState(pathToGoal.pop());
   // }
+  // printSearchPath(goal);
   if (node.action == null) throw 'already at goal';
   return { move: node.action };
 }
