@@ -279,6 +279,7 @@ const getSafeMoves = (gameState) => {
 }
 
 module.exports = {
+  MovesObject,
   isPosWithinBounds,
   manhattanDistance,
   getBasicSafeMoves,

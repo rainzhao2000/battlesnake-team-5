@@ -1,7 +1,7 @@
 // reference: Chapter 3 of Russell, S. J., Norvig, P., & Chang, M.-W. (2021). Artificial Intelligence: A modern approach. Pearson.
 
 const { State, Node, COLORS, getOutputGrid, printGrid, printState } = require('./state');
-const { isPosWithinBounds, manhattanDistance, getBasicSafeMoves, getAdvancedSafeMoves, getSafeMoves } = require('./safe-moves');
+const { MovesObject, isPosWithinBounds, manhattanDistance, getBasicSafeMoves, getAdvancedSafeMoves, getSafeMoves } = require('./safe-moves');
 const v8 = require('v8');
 
 const structuredClone = obj => {
@@ -37,16 +37,51 @@ const getGreedyMoves = (forSnake, board) => {
       minDistance = d;
     }
   }
-  const moves = [];
-  if (nearestGoal.y > forSnake.head.y) moves.push('up');
-  else if (nearestGoal.y < forSnake.head.y) moves.push('down');
-  if (nearestGoal.x < forSnake.head.x) moves.push('left');
-  else if (nearestGoal.x > forSnake.head.x) moves.push('right');
+  const moves = new MovesObject(false, false, false, false);
+  if (nearestGoal.y > forSnake.head.y) moves.up = true;
+  else if (nearestGoal.y < forSnake.head.y) moves.down = true;
+  if (nearestGoal.x < forSnake.head.x) moves.left = true;
+  else if (nearestGoal.x > forSnake.head.x) moves.right = true;
   return moves;
 }
 
 const getAdvancedSafeMovesWrapper = (forSnake, board) => {
   return getAdvancedSafeMoves(forSnake, board).safeMoves;
+}
+
+const getOpponentMove = (forSnake, state) => {
+  const greedyMoves = getGreedyMoves(forSnake, state);
+  let safeMoves;
+  let moves;
+  // if I'm at board edge, opponents hug wall to simulate trapping me
+  if (state.you.head.x == 0 || state.you.head.x == board.width-1 ||
+    state.you.head.y == 0 || state.you.head.y == board.height-1) {
+    const edgeMoves = [];
+    if (forSnake.head.x == 0 || forSnake.head.x == board.width-1) {
+      if (forSnake.head.x == state.you.head.x) { // avoid head on with us
+        edgeMoves.push(forSnake.head.y > state.you.head.y ? 'up': 'down');
+      } else edgeMoves.push(greedyMoves.up ? 'up': 'down');
+    }
+    if (forSnake.head.y == 0 || forSnake.head.y == board.height-1) {
+      if (forSnake.head.y == state.you.head.y) { // avoid head on with us
+        edgeMoves.push(forSnake.head.x < state.you.head.x ? 'left': 'right');
+      } else edgeMoves.push(greedyMoves.left ? 'left': 'right');
+    }
+    if (edgeMoves.length == 0) { // forSnake not at edge
+      // move to nearest edges
+      if (forSnake.head.y > (board.height-1)/2) edgeMoves.push('up');
+      else edgeMoves.push('down');
+      if (forSnake.head.x < (board.width-1)/2) edgeMoves.push('left');
+      else edgeMoves.push('right');
+    }
+    safeMoves = getBasicSafeMoves(forSnake, state.board);
+    moves = edgeMoves.filter((move) => safeMoves.includes(move));
+  } else { // else assume other snakes pick a random greedy safe move
+    safeMoves = getAdvancedSafeMovesWrapper(forSnake, state.board);
+    moves = Object.keys(greedyMoves).filter((move) => greedyMoves[move] && safeMoves.includes(move));
+  }
+  return moves.length ? moves[Math.floor(Math.random() * moves.length)] :
+    safeMoves[Math.floor(Math.random() * safeMoves.length)];
 }
 
 let turn = 0;
@@ -55,8 +90,6 @@ let simulatedDeaths = 0;
 
 // simulate the next game state
 const getResult = (state, action) => {
-  // const enemySafetyLogic = turn > 0 ? getAdvancedSafeMovesWrapper : getBasicSafeMoves;
-  const enemySafetyLogic = getAdvancedSafeMovesWrapper;
   const newBoard = structuredClone(state.board);
   // assume no new food and remove eaten food
   newBoard.food = newBoard.food.filter((foo) => !foo.consumed);
@@ -75,12 +108,7 @@ const getResult = (state, action) => {
       newSnake.head = myHead;
       newSnake.killedSnake = null; // reset tag if search continues
     } else {
-      // assume other snakes pick a random greedy safe move
-      const greedyMoves = getGreedyMoves(snake, state.board);
-      const safeMoves = enemySafetyLogic(snake, state.board);
-      const moves = greedyMoves.filter((move) => safeMoves.includes(move));
-      const move = moves.length ? moves[Math.floor(Math.random() * moves.length)] :
-        safeMoves[Math.floor(Math.random() * safeMoves.length)];
+      const move = getOpponentMove(snake, state);
       switch (move) {
         case 'up': newSnake.head.y += 1; break;
         case 'down': newSnake.head.y -= 1; break;
