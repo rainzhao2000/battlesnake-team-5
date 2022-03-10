@@ -24,6 +24,10 @@ const printSearchPath = (node) => {
   printGrid(grid);
 }
 
+const isAtBoardEdge = (head, board) => {
+  return head.x == 0 || head.x == board.width-1 || head.y == 0 || head.y == board.height-1;
+}
+
 const getGreedyMoves = (forSnake, board) => {
   const edibleSnake = board.snakes.find(
     (snake) => snake.length < forSnake.length && manhattanDistance(forSnake.head, snake.head) <= 2
@@ -54,8 +58,7 @@ const getOpponentMove = (forSnake, state) => {
   let safeMoves;
   let moves;
   // if I'm at board edge, opponents hug wall to simulate trapping me
-  if (state.you.head.x == 0 || state.you.head.x == state.board.width-1 ||
-    state.you.head.y == 0 || state.you.head.y == state.board.height-1) {
+  if (isAtBoardEdge(state.you.head, state.board)) {
     const edgeMoves = [];
     if (forSnake.head.x == 0 || forSnake.head.x == state.board.width-1) {
       if (forSnake.head.x == state.you.head.x) { // avoid head on with us
@@ -184,14 +187,17 @@ const getActionCost = (state, action, newState) => {
 }
 
 const hasEscape = (node) => {
+  const me = node.state.you;
   if (node.state.board.snakes.some(
-    (snake) => snake.length >= node.state.you.length &&
-      snake.id != node.state.you.id &&
-      manhattanDistance(node.state.you.head, snake.head) <= 2
+    (snake) => snake.id != me.id &&
+      manhattanDistance(me.head, snake.head) <= 2 &&
+      (snake.length >= me.length ||
+        (isAtBoardEdge(me.head, node.state.board) &&
+        !isAtBoardEdge(snake.head, node.state.board)))
   )) return false;
   const { idealMoves, area } = getSafeMoves(node.state);
   const canEscape = idealMoves.length > 0;
-  if (canEscape) console.log(node.state.you.head, 'has escape:', idealMoves, area);
+  if (canEscape) console.log(me.head, 'has escape:', idealMoves, area);
   return canEscape;
 }
 
