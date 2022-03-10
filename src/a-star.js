@@ -50,28 +50,28 @@ const getAdvancedSafeMovesWrapper = (forSnake, board) => {
 }
 
 const getOpponentMove = (forSnake, state) => {
-  const greedyMoves = getGreedyMoves(forSnake, state);
+  const greedyMoves = getGreedyMoves(forSnake, state.board);
   let safeMoves;
   let moves;
   // if I'm at board edge, opponents hug wall to simulate trapping me
-  if (state.you.head.x == 0 || state.you.head.x == board.width-1 ||
-    state.you.head.y == 0 || state.you.head.y == board.height-1) {
+  if (state.you.head.x == 0 || state.you.head.x == state.board.width-1 ||
+    state.you.head.y == 0 || state.you.head.y == state.board.height-1) {
     const edgeMoves = [];
-    if (forSnake.head.x == 0 || forSnake.head.x == board.width-1) {
+    if (forSnake.head.x == 0 || forSnake.head.x == state.board.width-1) {
       if (forSnake.head.x == state.you.head.x) { // avoid head on with us
         edgeMoves.push(forSnake.head.y > state.you.head.y ? 'up': 'down');
       } else edgeMoves.push(greedyMoves.up ? 'up': 'down');
     }
-    if (forSnake.head.y == 0 || forSnake.head.y == board.height-1) {
+    if (forSnake.head.y == 0 || forSnake.head.y == state.board.height-1) {
       if (forSnake.head.y == state.you.head.y) { // avoid head on with us
         edgeMoves.push(forSnake.head.x < state.you.head.x ? 'left': 'right');
       } else edgeMoves.push(greedyMoves.left ? 'left': 'right');
     }
     if (edgeMoves.length == 0) { // forSnake not at edge
       // move to nearest edges
-      if (forSnake.head.y > (board.height-1)/2) edgeMoves.push('up');
+      if (forSnake.head.y > (state.board.height-1)/2) edgeMoves.push('up');
       else edgeMoves.push('down');
-      if (forSnake.head.x < (board.width-1)/2) edgeMoves.push('left');
+      if (forSnake.head.x < (state.board.width-1)/2) edgeMoves.push('left');
       else edgeMoves.push('right');
     }
     safeMoves = getBasicSafeMoves(forSnake, state.board);
