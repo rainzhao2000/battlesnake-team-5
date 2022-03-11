@@ -130,8 +130,7 @@ const getResult = (state, action) => {
       }
     }
     // remove last body segment
-    if (!newSnake.consumedFood) newSnake.body.pop();
-    else newSnake.consumedFood = false; // reset consumedFood
+    newSnake.body.pop();
     // add new body segment where head is
     newSnake.body.unshift(structuredClone(newSnake.head));
     // check if food was eaten
@@ -141,7 +140,7 @@ const getResult = (state, action) => {
       ateFood.consumed = true;
       newSnake.length += 1;
       newSnake.health = 100;
-      newSnake.consumedFood = true;
+      newSnake.body.push(structuredClone(newSnake.body[newSnake.body.length-1]));
     } else {
       newSnake.health -= 1;
       if (newSnake.health == 0) {
