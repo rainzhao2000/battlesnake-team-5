@@ -278,6 +278,7 @@ const getAdvancedSafeMoves = (forSnake, board) => {
   const riskyMoves = new MovesObject(isUpRisky, isDownRisky, isLeftRisky, isRightRisky);
   const idealMoves = moves.filter((key) => possibleMoves[key] && !riskyMoves[key]);
   return {
+    riskyMoves,
     idealMoves,
     safeMoves: idealMoves.length ? idealMoves : moves.filter((key) => possibleMoves[key]),
     area

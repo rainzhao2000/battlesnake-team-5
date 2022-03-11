@@ -33,19 +33,21 @@ const getTouchingEdges = (head, board) => {
   return touchingEdges;
 }
 
-const getGreedyMoves = (forSnake, board) => {
-  const edibleSnake = board.snakes.find(
+const getGreedyMoves = (forSnake, state) => {
+  const edibleSnake = state.board.snakes.find(
     (snake) => snake.length < forSnake.length && manhattanDistance(forSnake.head, snake.head) <= 2
   );
   let nearestGoal = edibleSnake || forSnake.body[forSnake.body.length-1]; // default to own tail goal
   let minDistance = Number.MAX_SAFE_INTEGER;
-  for (const foo of board.food) {
+  for (const foo of state.board.food) {
     const d = manhattanDistance(forSnake.head, foo);
     if (d < minDistance && !foo.consumed) {
       nearestGoal = foo; // override goal with nearest food
       minDistance = d;
     }
   }
+  // override goal to track our head if within radius
+  if (1 < manhattanDistance(forSnake.head, state.you.head) <= 3) nearestGoal = state.you.head;
   const moves = new MovesObject(false, false, false, false);
   if (nearestGoal.y > forSnake.head.y) moves.up = true;
   else if (nearestGoal.y < forSnake.head.y) moves.down = true;
@@ -59,6 +61,7 @@ const getAdvancedSafeMovesWrapper = (forSnake, board) => {
 }
 
 const getOpponentMove = (forSnake, state) => {
+  const greedyMoves = getGreedyMoves(forSnake, state);
   let safeMoves;
   let moves;
   // if I'm at board edge, opponents hug wall to simulate trapping me
@@ -84,11 +87,10 @@ const getOpponentMove = (forSnake, state) => {
     // safeMoves = getBasicSafeMoves(forSnake, state.board);
     safeMoves = getAdvancedSafeMovesWrapper(forSnake, state.board);
     moves = myTouchingEdges.filter((move) => safeMoves.includes(move));
-    if (!moves.length) moves = Object.keys(edgeMoves).filter(
-      (move) => edgeMoves[move] && safeMoves.includes(move)
+    if (!moves.length) moves = Object.keys(greedyMoves).filter(
+      (move) => greedyMoves[move] && edgeMoves[move] && safeMoves.includes(move)
     );
   } else { // else assume other snakes pick a random greedy safe move
-    const greedyMoves = getGreedyMoves(forSnake, state.board);
     safeMoves = getAdvancedSafeMovesWrapper(forSnake, state.board);
     moves = Object.keys(greedyMoves).filter((move) => greedyMoves[move] && safeMoves.includes(move));
   }
@@ -337,7 +339,8 @@ class MinHeap {
 
 const expand = (node) => {
   const s = node.state;
-  const { safeMoves, area } = getSafeMoves(s);
+  const { riskyMoves, safeMoves, area } = getSafeMoves(s);
+  // if (safeMoves.every((move) => riskyMoves[move])) return [];
   if (!node.parent) console.log(safeMoves, area);
   return safeMoves.map((action) => {
     let newS;
@@ -457,8 +460,10 @@ const aStarSearch = (gameState) => {
     node = node.parent;
     // pathToGoal.push(node.state);
   }
-  // while (pathToGoal.length) {
+  // let j = 0;
+  // while (j < 6 && pathToGoal.length) {
   //   printState(pathToGoal.pop());
+  //   j += 1;
   // }
   // printSearchPath(goal);
   if (node.action == null) throw 'already at goal';
