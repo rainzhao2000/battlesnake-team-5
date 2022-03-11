@@ -1,7 +1,7 @@
 // reference: Chapter 3 of Russell, S. J., Norvig, P., & Chang, M.-W. (2021). Artificial Intelligence: A modern approach. Pearson.
 
 const { State, Node, COLORS, getOutputGrid, printGrid, printState } = require('./state');
-const { MovesObject, isPosWithinBounds, manhattanDistance, getBasicSafeMoves, getAdvancedSafeMoves, getSafeMoves } = require('./safe-moves');
+const { Position, MovesObject, isPosWithinBounds, manhattanDistance, getBasicSafeMoves, getAdvancedSafeMoves, getSafeMoves } = require('./safe-moves');
 const v8 = require('v8');
 
 const structuredClone = obj => {
@@ -33,40 +33,64 @@ const getTouchingEdges = (head, board) => {
   return touchingEdges;
 }
 
+let corners;
+const isNearCorner = (pos) => {
+  for (const corner of corners) {
+    if (manhattanDistance(pos, corner) <= 1) return true;
+  }
+  return false;
+}
+
 const getGreedyMoves = (forSnake, state) => {
-  const edibleSnake = state.board.snakes.find(
-    (snake) => snake.length < forSnake.length && manhattanDistance(forSnake.head, snake.head) <= 2
-  );
-  let nearestGoal = edibleSnake || forSnake.body[forSnake.body.length-1]; // default to own tail goal
-  let minDistance = Number.MAX_SAFE_INTEGER;
+  let nearestGoal = forSnake.body[forSnake.body.length-1]; // default to own tail goal
+  let minDistToFood = Number.MAX_SAFE_INTEGER;
   for (const foo of state.board.food) {
     const d = manhattanDistance(forSnake.head, foo);
-    if (d < minDistance && !foo.consumed) {
+    if (d < minDistToFood && !foo.consumed) {
       nearestGoal = foo; // override goal with nearest food
-      minDistance = d;
+      minDistToFood = d;
     }
   }
-  // override goal to track our head if within radius
-  if (1 < manhattanDistance(forSnake.head, state.you.head) <= 3) nearestGoal = state.you.head;
+  // add goal to track our head if within radius
+  let headGoal = null;
+  const distToHead = manhattanDistance(forSnake.head, state.you.head);
+  if (distToHead <= 3 && minDistToFood > 1) headGoal = state.you.head;
   const moves = new MovesObject(false, false, false, false);
   if (nearestGoal.y > forSnake.head.y) moves.up = true;
   else if (nearestGoal.y < forSnake.head.y) moves.down = true;
   if (nearestGoal.x < forSnake.head.x) moves.left = true;
   else if (nearestGoal.x > forSnake.head.x) moves.right = true;
+  if (headGoal) {
+    if (headGoal.y > forSnake.head.y) moves.up = true;
+    else if (headGoal.y < forSnake.head.y) moves.down = true;
+    if (headGoal.x < forSnake.head.x) moves.left = true;
+    else if (headGoal.x > forSnake.head.x) moves.right = true;
+  }
   return moves;
 }
 
-const getAdvancedSafeMovesWrapper = (forSnake, board) => {
-  return getAdvancedSafeMoves(forSnake, board).safeMoves;
+const getMaxAreaMove = (moves, area) => {
+  let bestMove;
+  let maxArea = -1;
+  for (const move of moves) {
+    if (area[move] > maxArea) {
+      bestMove = move;
+      maxArea = area[move];
+    }
+  }
+  return bestMove;
 }
 
 const getOpponentMove = (forSnake, state) => {
   const greedyMoves = getGreedyMoves(forSnake, state);
-  let safeMoves;
+  const { safeMoves, area } = getAdvancedSafeMoves(forSnake, state.board);
   let moves;
   // if I'm at board edge, opponents hug wall to simulate trapping me
   const myTouchingEdges = getTouchingEdges(state.you.head, state.board);
-  if (myTouchingEdges.length) {
+  if (myTouchingEdges.length &&
+    manhattanDistance(forSnake.head, state.you.head) <= 3 &&
+    !isNearCorner(forSnake.head)
+  ) {
     const edgeMoves = new MovesObject(true, true, true, true);
     for (const edge of myTouchingEdges) {
       switch (edge) { // avoid moving away from my edge
@@ -84,18 +108,15 @@ const getOpponentMove = (forSnake, state) => {
       if (forSnake.head.x < state.you.head.x) edgeMoves.right = false;
       else edgeMoves.left = false;
     }
-    // safeMoves = getBasicSafeMoves(forSnake, state.board);
-    safeMoves = getAdvancedSafeMovesWrapper(forSnake, state.board);
     moves = myTouchingEdges.filter((move) => safeMoves.includes(move));
     if (!moves.length) moves = Object.keys(greedyMoves).filter(
       (move) => greedyMoves[move] && edgeMoves[move] && safeMoves.includes(move)
     );
   } else { // else assume other snakes pick a random greedy safe move
-    safeMoves = getAdvancedSafeMovesWrapper(forSnake, state.board);
     moves = Object.keys(greedyMoves).filter((move) => greedyMoves[move] && safeMoves.includes(move));
   }
   return moves.length ? moves[Math.floor(Math.random() * moves.length)] :
-    safeMoves[Math.floor(Math.random() * safeMoves.length)];
+    getMaxAreaMove(safeMoves, area);
 }
 
 let turn = 0;
@@ -193,7 +214,7 @@ const getResult = (state, action) => {
 }
 
 const getActionCost = (state, action, newState) => {
-  return 1;
+  return getTouchingEdges(newState.you.head, newState.board).length ? 2 : 1;
 }
 
 const hasEscape = (node) => {
@@ -213,7 +234,6 @@ const hasEscape = (node) => {
 
 const isFoodGoal = (node) => {
   const me = node.state.you;
-  // food and escape goal
   const foundGoal = node.state.board.food.some(
     (foo) => foo.x == me.head.x && foo.y == me.head.y
   ) && hasEscape(node);
@@ -222,8 +242,8 @@ const isFoodGoal = (node) => {
 }
 
 const isKillGoal = (node) => {
-  const foundGoal = node.state.you.killedSnake;
-  if (foundGoal) console.log(`found kill goal on ${foundGoal}`);
+  const foundGoal = node.state.you.killedSnake && hasEscape(node);
+  if (foundGoal) console.log(`found kill goal on ${node.state.you.killedSnake}`);
   return !!foundGoal;
 }
 
@@ -427,6 +447,12 @@ const tailHeuristicCost = (node) => {
 
 const aStarSearch = (gameState) => {
   turn = gameState.turn;
+  corners = [
+    new Position(0, 0),
+    new Position(0, gameState.board.height-1),
+    new Position(gameState.board.width-1, 0),
+    new Position(gameState.board.width-1, gameState.board.height-1)
+  ];
   simulatedDeaths = 0;
   let isGoal;
   let heuristicCost;
@@ -445,7 +471,7 @@ const aStarSearch = (gameState) => {
     goal = bestFirstSearch(
       new State(gameState),
       isGoal,
-      (node) => /*node.pathCost + */heuristicCost(node),
+      (node) => node.pathCost + heuristicCost(node),
       aboutToTimeout
     );
   } catch (err) {
@@ -471,18 +497,10 @@ const aStarSearch = (gameState) => {
 }
 
 const defaultMove = (gameState) => {
-  let move;
   const { safeMoves, area } = getSafeMoves(new State(gameState));
   console.log(safeMoves, area);
   console.log('default move to largest area');
-  let maxArea = -1;
-  for (const safeMove of safeMoves) {
-    if (area[safeMove] > maxArea) {
-      move = safeMove;
-      maxArea = area[safeMove];
-    }
-  }
-  return { move };
+  return { move: getMaxAreaMove(safeMoves, area) };
 }
 
 module.exports = {

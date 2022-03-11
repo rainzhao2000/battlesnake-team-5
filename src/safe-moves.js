@@ -87,7 +87,9 @@ const getAreaAtPos = (pos, forSnake, board) => {
     for (const index in snake.body) {
       const segment = snake.body[index];
       if (segment.x == pos.x && segment.y == pos.y) {
-        if (isTail(index, snake) && !(manhattanDistance(forSnake.head, segment) <= 1 && isTailStacked(snake))) {
+        if (isTail(index, snake) &&
+          !(manhattanDistance(forSnake.head, segment) <= 1 &&
+          isTailStacked(snake))) {
           return isNearOtherDangerousHead(pos, forSnake, board, 2) ? 1 : snake.body.length;
         }
         return 0;
@@ -290,6 +292,7 @@ const getSafeMoves = (gameState) => {
 }
 
 module.exports = {
+  Position,
   MovesObject,
   isPosWithinBounds,
   manhattanDistance,
