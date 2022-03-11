@@ -24,19 +24,24 @@ const printSearchPath = (node) => {
   printGrid(grid);
 }
 
-const isAtBoardEdge = (head, board) => {
-  return head.x == 0 || head.x == board.width-1 || head.y == 0 || head.y == board.height-1;
+const getTouchingEdges = (head, board) => {
+  const touchingEdges = [];
+  if (head.x == 0) touchingEdges.push('left');
+  if (head.x == board.width-1) touchingEdges.push('right');
+  if (head.y == 0) touchingEdges.push('down');
+  if (head.y == board.height-1) touchingEdges.push('up');
+  return touchingEdges;
 }
 
 const getGreedyMoves = (forSnake, board) => {
   const edibleSnake = board.snakes.find(
     (snake) => snake.length < forSnake.length && manhattanDistance(forSnake.head, snake.head) <= 2
   );
-  let nearestGoal = edibleSnake || forSnake.body[forSnake.length-1]; // default to own tail goal
+  let nearestGoal = edibleSnake || forSnake.body[forSnake.body.length-1]; // default to own tail goal
   let minDistance = Number.MAX_SAFE_INTEGER;
   for (const foo of board.food) {
     const d = manhattanDistance(forSnake.head, foo);
-    if (d < minDistance) {
+    if (d < minDistance && !foo.consumed) {
       nearestGoal = foo; // override goal with nearest food
       minDistance = d;
     }
@@ -54,32 +59,36 @@ const getAdvancedSafeMovesWrapper = (forSnake, board) => {
 }
 
 const getOpponentMove = (forSnake, state) => {
-  const greedyMoves = getGreedyMoves(forSnake, state.board);
   let safeMoves;
   let moves;
   // if I'm at board edge, opponents hug wall to simulate trapping me
-  if (isAtBoardEdge(state.you.head, state.board)) {
-    const edgeMoves = [];
-    if (forSnake.head.x == 0 || forSnake.head.x == state.board.width-1) {
-      if (forSnake.head.x == state.you.head.x) { // avoid head on with us
-        edgeMoves.push(forSnake.head.y > state.you.head.y ? 'up': 'down');
-      } else edgeMoves.push(greedyMoves.up ? 'up': 'down');
+  const myTouchingEdges = getTouchingEdges(state.you.head, state.board);
+  if (myTouchingEdges.length) {
+    const edgeMoves = new MovesObject(true, true, true, true);
+    for (const edge of myTouchingEdges) {
+      switch (edge) { // avoid moving away from my edge
+        case 'up': edgeMoves.down = false; break;
+        case 'down': edgeMoves.up = false; break;
+        case 'left': edgeMoves.right = false; break;
+        case 'right': edgeMoves.false = false; break;
+      }
     }
-    if (forSnake.head.y == 0 || forSnake.head.y == state.board.height-1) {
-      if (forSnake.head.y == state.you.head.y) { // avoid head on with us
-        edgeMoves.push(forSnake.head.x < state.you.head.x ? 'left': 'right');
-      } else edgeMoves.push(greedyMoves.left ? 'left': 'right');
+    // avoid head on with us at edge
+    if (forSnake.head.x == state.you.head.x) {
+      if (forSnake.head.y > state.you.head.y) edgeMoves.down = false;
+      else edgeMoves.up = false;
+    } else if (forSnake.head.y == state.you.head.y) {
+      if (forSnake.head.x < state.you.head.x) edgeMoves.right = false;
+      else edgeMoves.left = false;
     }
-    if (edgeMoves.length == 0) { // forSnake not at edge
-      // move to nearest edges
-      if (forSnake.head.y > (state.board.height-1)/2) edgeMoves.push('up');
-      else edgeMoves.push('down');
-      if (forSnake.head.x < (state.board.width-1)/2) edgeMoves.push('left');
-      else edgeMoves.push('right');
-    }
-    safeMoves = getBasicSafeMoves(forSnake, state.board);
-    moves = edgeMoves.filter((move) => safeMoves.includes(move));
+    // safeMoves = getBasicSafeMoves(forSnake, state.board);
+    safeMoves = getAdvancedSafeMovesWrapper(forSnake, state.board);
+    moves = myTouchingEdges.filter((move) => safeMoves.includes(move));
+    if (!moves.length) moves = Object.keys(edgeMoves).filter(
+      (move) => edgeMoves[move] && safeMoves.includes(move)
+    );
   } else { // else assume other snakes pick a random greedy safe move
+    const greedyMoves = getGreedyMoves(forSnake, state.board);
     safeMoves = getAdvancedSafeMovesWrapper(forSnake, state.board);
     moves = Object.keys(greedyMoves).filter((move) => greedyMoves[move] && safeMoves.includes(move));
   }
@@ -192,8 +201,8 @@ const hasEscape = (node) => {
     (snake) => snake.id != me.id &&
       manhattanDistance(me.head, snake.head) <= 2 &&
       (snake.length >= me.length ||
-        (isAtBoardEdge(me.head, node.state.board) &&
-        !isAtBoardEdge(snake.head, node.state.board)))
+        (getTouchingEdges(me.head, node.state.board).length &&
+        !getTouchingEdges(snake.head, node.state.board).length))
   )) return false;
   const { idealMoves, area } = getSafeMoves(node.state);
   const canEscape = idealMoves.length > 0;

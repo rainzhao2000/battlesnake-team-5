@@ -64,20 +64,30 @@ const isSnakeNearFood = (snake, food, radius) => {
 
 const isNearOtherDangerousHead = (pos, forSnake ,board, radius) => {
   return board.snakes.some(
-    (snake) => snake.id != forSnake.id && snake.length >= forSnake.length && manhattanDistance(pos, snake.head) <= radius
+    (snake) => snake.id != forSnake.id &&
+    snake.length >= forSnake.length &&
+    manhattanDistance(pos, snake.head) <= radius
   );
+}
+
+const isTailStacked = (snake) => {
+  const secondLast = snake.body[snake.body.length-2];
+  const tail = snake.body[snake.body.length-1];
+  return secondLast.x == tail.x && secondLast.y == tail.y;
+}
+
+const isTail = (index, snake) => {
+  return (index == snake.body.length-2 && isTailStacked(snake)) ||
+  index == snake.body.length-1;
 }
 
 const getAreaAtPos = (pos, forSnake, board) => {
   if (!isPosWithinBounds(pos, board)) return 0;
   for (const snake of board.snakes) {
     for (const index in snake.body) {
-      if (snake.body[index].x == pos.x && snake.body[index].y == pos.y) {
-        if (index == snake.body.length-1 &&
-          (snake.id == forSnake.id ||
-            (manhattanDistance(forSnake.head, snake.body[index]) <= 2 &&
-            !isSnakeNearFood(snake, board.food, 2)))
-        ) {
+      const segment = snake.body[index];
+      if (segment.x == pos.x && segment.y == pos.y) {
+        if (isTail(index, snake) && !(manhattanDistance(forSnake.head, segment) <= 1 && isTailStacked(snake))) {
           return isNearOtherDangerousHead(pos, forSnake, board, 2) ? 1 : snake.body.length;
         }
         return 0;
@@ -160,25 +170,25 @@ const getBasicSafeMoves = (forSnake, board) => {
   possibleMoves.up = possibleMoves.up && snakes.every(
     (snake) => snake.body.every(
       (segment, i) => !isUp(segment, forSnake.head) ||
-        (i == snake.body.length-1 && !isSnakeNearFood(snake, board.food, 1))
+        (isTail(i, snake) && !isSnakeNearFood(snake, board.food, 1))
     )
   );
   possibleMoves.down = possibleMoves.down && snakes.every(
     (snake) => snake.body.every(
       (segment, i) => !isDown(segment, forSnake.head) ||
-      (i == snake.body.length-1 && !isSnakeNearFood(snake, board.food, 1))
+      (isTail(i, snake) && !isSnakeNearFood(snake, board.food, 1))
     )
   );
   possibleMoves.left = possibleMoves.left && snakes.every(
     (snake) => snake.body.every(
       (segment, i) => !isLeft(segment, forSnake.head) ||
-      (i == snake.body.length-1 && !isSnakeNearFood(snake, board.food, 1))
+      (isTail(i, snake) && !isSnakeNearFood(snake, board.food, 1))
     )
   );
   possibleMoves.right = possibleMoves.right && snakes.every(
     (snake) => snake.body.every(
       (segment, i) => !isRight(segment, forSnake.head) ||
-      (i == snake.body.length-1 && !isSnakeNearFood(snake, board.food, 1))
+      (isTail(i, snake) && !isSnakeNearFood(snake, board.food, 1))
     )
   );
 
